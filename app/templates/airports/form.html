@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if airport else 'New' }} Airport{% endblock %}
+{% block page_title %}{{ 'Edit Airport' if airport else 'New Airport' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'Edit Airport' if airport else 'Add New Airport' }}</h1>
+    <p class="page-subtitle">Configure reference airport information.</p>
+  </div>
+  <a href="/admin/airports" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <form method="post" action="{{ '/admin/airports/' + airport.id|string + '/edit' if airport else '/admin/airports/new' }}">
+      <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <div class="form-field">
+          <label class="form-label">Airport IATA Code (3 letters) *</label>
+          <input class="form-input" name="airport_code" type="text" maxlength="10" placeholder="e.g. TAG, MNL, CEB" value="{{ airport.airport_code if airport else '' }}" required style="text-transform:uppercase">
+          {% if errors.airport_code %}<div class="form-error">{{ errors.airport_code }}</div>{% endif %}
+        </div>
+        <div class="form-field">
+          <label class="form-label">Full Airport Name *</label>
+          <input class="form-input" name="airport_name" type="text" placeholder="e.g. Panglao–Bohol International Airport" value="{{ airport.airport_name if airport else '' }}" required>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">City *</label>
+            <input class="form-input" name="city" type="text" placeholder="e.g. Panglao / Tagbilaran" value="{{ airport.city if airport else '' }}" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Country *</label>
+            <input class="form-input" name="country" type="text" placeholder="Philippines" value="{{ airport.country if airport else 'Philippines' }}" required>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-top:.75rem;border-top:1px solid var(--surface-container)">
+          <a href="/admin/airports" class="btn-secondary">Cancel</a>
+          <button type="submit" class="btn-primary"><span class="material-symbols-outlined">save</span>{{ 'Update' if airport else 'Save' }} Airport</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

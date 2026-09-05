@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Add Aircraft{% endblock %}
+{% block page_title %}New Aircraft{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Add Aircraft to Fleet</h1>
+    <p class="page-subtitle">Configure aircraft specifications and auto-generate seat inventory.</p>
+  </div>
+  <a href="/admin/airplanes" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+</div>
+
+<div class="card" style="max-width:640px">
+  <div class="card-body">
+    <form method="post" action="/admin/airplanes/new">
+      <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Tail / Aircraft Code *</label>
+            <input class="form-input" name="airplane_code" type="text" placeholder="e.g. RP-C8820" required style="text-transform:uppercase">
+            {% if errors.airplane_code %}<div class="form-error">{{ errors.airplane_code }}</div>{% endif %}
+          </div>
+          <div class="form-field">
+            <label class="form-label">Status *</label>
+            <select class="form-input" name="status">
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="MAINTENANCE">MAINTENANCE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Aircraft Name / Model *</label>
+            <input class="form-input" name="airplane_name" type="text" placeholder="e.g. Airbus A320-200" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Aircraft Category *</label>
+            <input class="form-input" name="airplane_type" type="text" placeholder="e.g. Narrow-body Jet / Turboprop" required>
+          </div>
+        </div>
+
+        <div class="card" style="background:var(--surface-container-low);padding:1rem">
+          <div class="card-title" style="font-size:13px;margin-bottom:0.75rem"><span class="material-symbols-outlined">event_seat</span>Seat Configuration</div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Number of Rows</label>
+              <input class="form-input" name="rows" type="number" min="5" max="60" value="20" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Columns (Letters comma-separated)</label>
+              <input class="form-input" name="cols" type="text" value="A,B,C,D,E,F" placeholder="A,B,C,D,E,F" required>
+            </div>
+          </div>
+          <div class="form-help">Rows 1-2 will be tagged as Business, 3-4 as Premium, and the rest as Economy.</div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-top:.75rem;border-top:1px solid var(--surface-container)">
+          <a href="/admin/airplanes" class="btn-secondary">Cancel</a>
+          <button type="submit" class="btn-primary"><span class="material-symbols-outlined">save</span>Add Aircraft &amp; Generate Seats</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

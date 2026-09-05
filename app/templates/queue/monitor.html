@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Live Booking Logs Monitor{% endblock %}
+{% block page_title %}Sequential Processing Monitor{% endblock %}
+
+{% block content %}
+<div class="page-header queue-header">
+  <div>
+    <div class="title-row">
+      <h1 class="page-title">Live Sequential Processing Monitor</h1>
+      <span class="mode-chip">FIFO Guarantee</span>
+    </div>
+    <p class="page-subtitle">Real-time auditable stream from <code>booking_logs</code> table. Strictly serialized single-worker execution.</p>
+  </div>
+  <div class="page-header-actions queue-actions">
+    <span class="sync-status"><span class="queue-live-dot"></span>Auto-refreshing <small>350 ms</small></span>
+    <form method="post" action="/admin/queue/demo-2-for-1" style="display:inline">
+      <button type="submit" class="btn-secondary" onclick="return confirm('Launch the 2-for-1 warmup demo on flight YP-DEMO?')">
+        <span class="material-symbols-outlined">play_arrow</span>Run 2-for-1 Warm-up
+      </button>
+    </form>
+    <form method="post" action="/admin/queue/demo-5-for-1" style="display:inline">
+      <button type="submit" class="btn-primary" onclick="return confirm('Launch the 5-Customers-1-Seat sequential queue race condition demo on flight YP-DEMO?')">
+        <span class="material-symbols-outlined">bolt</span>Run 5-Customers-1-Seat Demo
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-grid queue-stats">
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-label">Total Requests Logged</span><span class="stat-icon"><span class="material-symbols-outlined">sync</span></span></div>
+    <div><span class="stat-value">{{ total_logs }}</span><span class="trend-up stat-delta">↗ live</span></div>
+    <div class="stat-sub">Auditable records in booking_logs</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-label">Sequential Queue Depth</span><span class="stat-icon"><span class="material-symbols-outlined">timer</span></span></div>
+    <div><span class="stat-value">{{ queue_depth }}</span><span class="stat-unit"> requests</span></div>
+    <div class="stat-sub">Single dedicated thread worker</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-label">Confirmed (SUCCESS)</span><span class="stat-icon"><span class="material-symbols-outlined">verified</span></span></div>
+    <div><span class="stat-value" style="color:#16a34a">{{ success_count }}</span></div>
+    <div class="stat-sub">Atomic lock acquired &amp; confirmed</div>
+  </div>
+
+  <div class="stat-card stat-card-alert">
+    <div class="stat-top"><span class="stat-label">Prevented (REJECTED)</span><span class="material-symbols-outlined alert-icon">warning</span></div>
+    <div><span class="stat-value" style="color:#dc2626">{{ rejected_count }}</span></div>
+    <div class="stat-sub">{{ rejected_count }} double-booking conflicts prevented</div>
+  </div>
+</div>
+
+<div class="card queue-card">
+  <div class="card-header queue-toolbar">
+    <div class="filter-chips">
+      <span class="toolbar-label">Audit Log</span>
+      <button class="filter-chip active">All Events ({{ total_logs }})</button>
+      <button class="filter-chip">Success ({{ success_count }})</button>
+      <button class="filter-chip">Rejected ({{ rejected_count }})</button>
+    </div>
+    <span class="stream-meta"><span class="queue-live-dot"></span>Hub Engine: Panglao–Bohol (TAG)</span>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table queue-table">
+      <thead>
+        <tr>
+          <th>Log # / Action</th>
+          <th>Passenger</th>
+          <th>Processing Type</th>
+          <th>Result Status</th>
+          <th>Message / Evidence</th>
+          <th>Started At</th>
+          <th>Completed At</th>
+        </tr>
+      </thead>
+      <tbody id="queue-rows" hx-get="/admin/queue/table" hx-trigger="load, every 400ms" hx-swap="innerHTML">
+        {% include "queue/table_partial.html" %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

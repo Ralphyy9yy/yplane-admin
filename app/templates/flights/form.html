@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Schedule Flight{% endblock %}
+{% block page_title %}New Flight{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Schedule New Flight</h1>
+    <p class="page-subtitle">Publish a flight on the YPlane reservation network.</p>
+  </div>
+  <a href="/admin/flights" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+  <!-- LEFT: Form -->
+  <div class="card">
+    <div class="card-body">
+      <form method="post" action="/admin/flights/new" id="flightForm">
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Flight Number *</label>
+              <input class="form-input" name="flight_number" id="inp_fn" type="text" placeholder="e.g. YP-105" required style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();preview()">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Flight Status *</label>
+              <select class="form-input" name="status" id="inp_status" onchange="preview()">
+                <option value="SCHEDULED">SCHEDULED</option>
+                <option value="BOARDING">BOARDING</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Route *</label>
+              <select class="form-input" name="route_id" id="inp_route" required onchange="preview()">
+                {% for r in routes %}
+                <option value="{{ r.id }}" data-origin="{{ r.origin_airport.airport_code }}" data-dest="{{ r.destination_airport.airport_code }}" data-ocity="{{ r.origin_airport.city }}" data-dcity="{{ r.destination_airport.city }}">
+                  {{ r.origin_airport.airport_code }} ({{ r.origin_airport.city }}) → {{ r.destination_airport.airport_code }} ({{ r.destination_airport.city }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Aircraft *</label>
+              <select class="form-input" name="airplane_id" id="inp_plane" required onchange="preview()">
+                {% for ap in airplanes %}
+                <option value="{{ ap.id }}" data-seats="{{ ap.total_seats }}" data-name="{{ ap.airplane_name }}" data-code="{{ ap.airplane_code }}">
+                  {{ ap.airplane_code }} — {{ ap.airplane_name }} ({{ ap.total_seats }} seats)
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Departure Date *</label>
+              <input class="form-input" name="departure_date" id="inp_date" type="date" required onchange="preview()">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Ticket Fare (₱) *</label>
+              <input class="form-input" name="fare" id="inp_fare" type="number" step="0.01" min="1" placeholder="3500.00" required oninput="preview()">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Departure Time *</label>
+              <input class="form-input" name="departure_time" id="inp_dep" type="time" required onchange="preview()">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Arrival Time *</label>
+              <input class="form-input" name="arrival_time" id="inp_arr" type="time" required onchange="preview()">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-top:.75rem;border-top:1px solid var(--surface-container)">
+            <a href="/admin/flights" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary"><span class="material-symbols-outlined">save</span>Publish Flight</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: Live Preview + Tips -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Live Flight Preview Card -->
+    <div class="card" style="overflow:hidden;">
+      <div style="background:linear-gradient(135deg,var(--primary) 0%,#006b5e 100%);padding:1.25rem 1.5rem;color:white;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;">
+          <span style="font-size:.7rem;font-weight:700;letter-spacing:.1em;opacity:.8;">YPLANE — PREVIEW</span>
+          <span id="prev_status_badge" style="font-size:.65rem;font-weight:700;letter-spacing:.08em;padding:.2rem .6rem;border-radius:9999px;background:rgba(255,255,255,.2);">SCHEDULED</span>
+        </div>
+        <div style="font-size:1.6rem;font-weight:800;letter-spacing:.05em;" id="prev_fn">YP-???</div>
+      </div>
+      <div class="card-body" style="padding:1.25rem 1.5rem;">
+
+        <!-- Route strip -->
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;">
+          <div style="text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--primary);" id="prev_origin">---</div>
+            <div style="font-size:.7rem;color:var(--text-secondary);" id="prev_ocity">Origin</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="font-size:.65rem;color:var(--text-secondary);" id="prev_duration">--h --m</div>
+            <div style="width:100%;height:2px;background:linear-gradient(90deg,var(--primary),var(--surface-container),var(--primary));border-radius:2px;position:relative;">
+              <span class="material-symbols-outlined" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:1rem;color:var(--primary);background:white;border-radius:50%;">flight</span>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--primary);" id="prev_dest">---</div>
+            <div style="font-size:.7rem;color:var(--text-secondary);" id="prev_dcity">Destination</div>
+          </div>
+        </div>
+
+        <!-- Details grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+          <div style="background:var(--surface-container);border-radius:.5rem;padding:.65rem .85rem;">
+            <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:.15rem;">DATE</div>
+            <div style="font-size:.85rem;font-weight:600;" id="prev_date">—</div>
+          </div>
+          <div style="background:var(--surface-container);border-radius:.5rem;padding:.65rem .85rem;">
+            <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:.15rem;">FARE</div>
+            <div style="font-size:.85rem;font-weight:600;color:var(--primary);" id="prev_fare">₱ —</div>
+          </div>
+          <div style="background:var(--surface-container);border-radius:.5rem;padding:.65rem .85rem;">
+            <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:.15rem;">DEPARTS</div>
+            <div style="font-size:.85rem;font-weight:600;" id="prev_dep">—</div>
+          </div>
+          <div style="background:var(--surface-container);border-radius:.5rem;padding:.65rem .85rem;">
+            <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:.15rem;">ARRIVES</div>
+            <div style="font-size:.85rem;font-weight:600;" id="prev_arr">—</div>
+          </div>
+          <div style="background:var(--surface-container);border-radius:.5rem;padding:.65rem .85rem;grid-column:1/-1;">
+            <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:.15rem;">AIRCRAFT</div>
+            <div style="font-size:.85rem;font-weight:600;" id="prev_plane">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Tips -->
+    <div class="card">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
+          <span class="material-symbols-outlined" style="color:var(--primary);font-size:1.2rem;">tips_and_updates</span>
+          <span style="font-weight:700;font-size:.9rem;">Scheduling Tips</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.7rem;">
+          <div style="display:flex;gap:.75rem;align-items:flex-start;">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--primary);margin-top:2px;">tag</span>
+            <div>
+              <div style="font-size:.8rem;font-weight:600;">Flight Number Format</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">Use <strong>YP-</strong> prefix followed by 3 digits, e.g. <code>YP-105</code>. Automatically uppercased.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--primary);margin-top:2px;">schedule</span>
+            <div>
+              <div style="font-size:.8rem;font-weight:600;">Overnight Flights</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">If arrival time is before departure time, the flight is treated as arriving the next day.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--primary);margin-top:2px;">airline_seat_recline_normal</span>
+            <div>
+              <div style="font-size:.8rem;font-weight:600;">Seat Maps Auto-Generated</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">Seats are inherited from the selected aircraft. No manual seat setup needed.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--primary);margin-top:2px;">payments</span>
+            <div>
+              <div style="font-size:.8rem;font-weight:600;">Fare is Per Seat</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">The fare applies to every seat on this flight. Discounts and promos are managed outside the admin panel.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:#e67e22;margin-top:2px;">warning</span>
+            <div>
+              <div style="font-size:.8rem;font-weight:600;">Demo Flight (YP-DEMO)</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">The sequential queue demo requires a flight named <strong>YP-DEMO</strong> with at least 2 seats available.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /grid -->
+
+<script>
+function fmtTime(val) {
+  if (!val) return '—';
+  const [h, m] = val.split(':');
+  const hh = parseInt(h), mm = parseInt(m);
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  return `${hh % 12 || 12}:${m} ${ampm}`;
+}
+function calcDuration(dep, arr) {
+  if (!dep || !arr) return '--h --m';
+  const [dh, dm] = dep.split(':').map(Number);
+  let [ah, am] = arr.split(':').map(Number);
+  let mins = (ah * 60 + am) - (dh * 60 + dm);
+  if (mins <= 0) mins += 24 * 60;  // overnight
+  return `${Math.floor(mins/60)}h ${mins%60}m`;
+}
+function preview() {
+  const fnEl = document.getElementById('inp_fn');
+  const routeSel = document.getElementById('inp_route');
+  const planeSel = document.getElementById('inp_plane');
+  const statusSel = document.getElementById('inp_status');
+  const dateEl = document.getElementById('inp_date');
+  const fareEl = document.getElementById('inp_fare');
+  const depEl = document.getElementById('inp_dep');
+  const arrEl = document.getElementById('inp_arr');
+
+  const opt = routeSel.options[routeSel.selectedIndex];
+  const planeOpt = planeSel.options[planeSel.selectedIndex];
+
+  document.getElementById('prev_fn').textContent = fnEl.value || 'YP-???';
+  document.getElementById('prev_status_badge').textContent = statusSel.value;
+
+  document.getElementById('prev_origin').textContent = opt?.dataset.origin || '---';
+  document.getElementById('prev_dest').textContent = opt?.dataset.dest || '---';
+  document.getElementById('prev_ocity').textContent = opt?.dataset.ocity || 'Origin';
+  document.getElementById('prev_dcity').textContent = opt?.dataset.dcity || 'Destination';
+
+  if (dateEl.value) {
+    const d = new Date(dateEl.value + 'T00:00:00');
+    document.getElementById('prev_date').textContent = d.toLocaleDateString('en-PH', {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+  } else {
+    document.getElementById('prev_date').textContent = '—';
+  }
+
+  document.getElementById('prev_fare').textContent = fareEl.value ? '₱ ' + parseFloat(fareEl.value).toLocaleString('en-PH', {minimumFractionDigits:2}) : '₱ —';
+  document.getElementById('prev_dep').textContent = fmtTime(depEl.value);
+  document.getElementById('prev_arr').textContent = fmtTime(arrEl.value);
+  document.getElementById('prev_duration').textContent = calcDuration(depEl.value, arrEl.value);
+
+  const seats = planeOpt?.dataset.seats || '—';
+  const pname = planeOpt?.dataset.name || '—';
+  const pcode = planeOpt?.dataset.code || '';
+  document.getElementById('prev_plane').textContent = `${pcode} · ${pname} · ${seats} seats`;
+}
+document.addEventListener('DOMContentLoaded', preview);
+</script>
+{% endblock %}

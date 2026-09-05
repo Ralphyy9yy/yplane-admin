@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Payments{% endblock %}
+{% block page_title %}Financial Transactions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Payment Transactions</h1>
+    <p class="page-subtitle">Simulated payment records tied to flight reservations. {{ payments|length }} record(s).</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/payments">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search transaction ref, booking ref...">
+      </div>
+      <button class="btn-secondary" type="submit">Search</button>
+      {% if search %}<a href="/admin/payments" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Transaction Ref</th>
+          <th>Booking Reference</th>
+          <th>Passenger</th>
+          <th>Amount</th>
+          <th>Payment Method</th>
+          <th>Status</th>
+          <th>Paid At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td style="font-family:monospace;font-weight:700;color:var(--primary-container)">{{ p.transaction_reference }}</td>
+          <td><a href="/admin/bookings/{{ p.booking_id }}" style="font-family:monospace;font-weight:600">{{ p.booking.booking_reference if p.booking else '-' }}</a></td>
+          <td>{{ p.booking.user.name if p.booking and p.booking.user else '-' }}</td>
+          <td><strong style="font-size:14px">₱{{ '%.2f'|format(p.amount) }}</strong></td>
+          <td>{{ p.payment_method }}</td>
+          <td><span class="badge badge-{{ p.status.lower() }}">{{ p.status }}</span></td>
+          <td style="font-size:11px;font-family:monospace;color:var(--secondary)">{{ p.paid_at.strftime('%b %d, %Y %H:%M:%S') if p.paid_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><div class="empty-state"><h3>No payments recorded yet</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

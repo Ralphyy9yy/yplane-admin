@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Flight Operations{% endblock %}
+{% block page_title %}Flights Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Scheduled Flights</h1>
+    <p class="page-subtitle">Flight schedule catalog centered on Panglao–Bohol International Airport (TAG).</p>
+  </div>
+  <a href="/admin/flights/new" class="btn-primary"><span class="material-symbols-outlined">add</span>Schedule Flight</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/flights">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search flight #, aircraft...">
+      </div>
+      <button class="btn-secondary" type="submit">Search</button>
+      {% if search %}<a href="/admin/flights" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Flight #</th>
+          <th>Route</th>
+          <th>Aircraft</th>
+          <th>Date</th>
+          <th>Departure / Arrival</th>
+          <th>Fare</th>
+          <th>Seat Availability</th>
+          <th>Status</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in flights %}
+        {% set f = item.flight %}
+        <tr>
+          <td>
+            <a href="/admin/flights/{{ f.id }}" style="font-weight:700;font-size:13px;color:var(--primary-container)">
+              {{ f.flight_number }}
+            </a>
+          </td>
+          <td>
+            <strong>{{ f.route.origin_airport.airport_code }} → {{ f.route.destination_airport.airport_code }}</strong><br>
+            <span class="form-help">{{ f.route.origin_airport.city }} to {{ f.route.destination_airport.city }}</span>
+          </td>
+          <td>
+            <strong>{{ f.airplane.airplane_code }}</strong><br>
+            <span class="form-help">{{ f.airplane.airplane_name }}</span>
+          </td>
+          <td>{{ f.departure_date.strftime('%b %d, %Y') }}</td>
+          <td>
+            <strong>{{ f.departure_time.strftime('%H:%M') }}</strong> - {{ f.arrival_time.strftime('%H:%M') }}
+          </td>
+          <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(f.fare) }}</strong></td>
+          <td>
+            <span style="font-weight:600;color:{% if item.available_seats == 0 %}#dc2626{% elif item.available_seats <= 5 %}#d97706{% else %}#16a34a{% endif %}">
+              {{ item.available_seats }}
+            </span>
+            <span style="color:var(--secondary)"> / {{ item.total_seats }}</span>
+            <div class="progress-bar" style="max-width:80px;margin-top:3px">
+              <div class="progress-fill" style="width:{{ ((item.available_seats / item.total_seats) * 100)|int if item.total_seats > 0 else 0 }}%"></div>
+            </div>
+          </td>
+          <td><span class="badge badge-{{ f.status.lower() }}">{{ f.status }}</span></td>
+          <td style="text-align:right">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem">
+              <a href="/admin/flights/{{ f.id }}" class="btn-icon" title="View Seat Map &amp; Details"><span class="material-symbols-outlined">event_seat</span></a>
+              <form id="del-fl-{{ f.id }}" method="post" action="/admin/flights/{{ f.id }}/delete" style="display:inline">
+                <button type="button" class="btn-icon danger" onclick="confirmDelete('del-fl-{{ f.id }}', 'Delete flight {{ f.flight_number }}?')"><span class="material-symbols-outlined">delete</span></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9"><div class="empty-state"><h3>No flights scheduled</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

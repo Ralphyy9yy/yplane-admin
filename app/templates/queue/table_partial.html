@@ -1,0 +1,52 @@
+{% for log in logs %}
+<tr>
+  <td>
+    <div class="request-type">
+      <span class="request-badge">{{ log.action }}</span>
+      <small>#{{ log.id }}</small>
+    </div>
+  </td>
+  <td>
+    <div class="user-cell">
+      <span class="user-avatar">{{ (log.user.name if log.user else 'P')[0].upper() }}</span>
+      <span>
+        <strong>{{ log.user.name if log.user else ('User #' ~ log.user_id) }}</strong>
+        <small>{{ log.user.email if log.user else '' }}</small>
+      </span>
+    </div>
+  </td>
+  <td>
+    <span class="badge" style="background:#f0fdfa;color:#0f766e;font-weight:600">
+      <span class="material-symbols-outlined" style="font-size:12px">swap_vert</span>{{ log.processing_type }}
+    </span>
+  </td>
+  <td>
+    <span class="badge badge-{{ log.status.lower() }}">
+      <span class="material-symbols-outlined">{{ 'check_circle' if log.status == 'SUCCESS' else ('cancel' if log.status == 'REJECTED' else 'error') }}</span>
+      {{ log.status }}
+    </span>
+  </td>
+  <td>
+    <div style="font-size:12px;font-weight:500;color:var(--on-surface)">
+      {{ log.message or 'No message' }}
+    </div>
+  </td>
+  <td>
+    <strong class="time-value">{{ log.started_at.strftime('%H:%M:%S.%f')[:-3] }}</strong>
+    <small class="time-sub">Received</small>
+  </td>
+  <td>
+    <strong class="time-value">{{ log.completed_at.strftime('%H:%M:%S.%f')[:-3] if log.completed_at else 'Processing...' }}</strong>
+    <small class="time-sub">{{ 'Completed' if log.completed_at else 'In-flight' }}</small>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="7">
+    <div class="empty-state" style="padding:2.5rem">
+      <h3>Booking logs empty</h3>
+      <p>Click "Run 5-Customers-1-Seat Demo" above to witness strict sequential processing.</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Flight {{ flight.flight_number }}{% endblock %}
+{% block page_title %}Flight Details &amp; Seat Map{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Flight {{ flight.flight_number }}</h1>
+    <p class="page-subtitle">{{ flight.route.origin_airport.airport_name }} ({{ flight.route.origin_airport.airport_code }}) → {{ flight.route.destination_airport.airport_name }} ({{ flight.route.destination_airport.airport_code }})</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/admin/flights" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+    <form id="del-flight-form" method="post" action="/admin/flights/{{ flight.id }}/delete" style="display:inline" onsubmit="return confirm('Delete flight {{ flight.flight_number }}? All associated seat records will be removed.');">
+      <button type="submit" class="btn-danger">
+        <span class="material-symbols-outlined">delete</span>Delete Flight
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns:repeat(4, 1fr);margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-label">Departure Date &amp; Time</div>
+    <div class="stat-value" style="font-size:18px">{{ flight.departure_date.strftime('%b %d, %Y') }}</div>
+    <div class="stat-sub">{{ flight.departure_time.strftime('%H:%M') }} → {{ flight.arrival_time.strftime('%H:%M') }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Assigned Aircraft</div>
+    <div class="stat-value" style="font-size:18px">{{ flight.airplane.airplane_code }}</div>
+    <div class="stat-sub">{{ flight.airplane.airplane_name }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Available Seats</div>
+    <div class="stat-value" style="color:#16a34a">{{ available_count }}</div>
+    <div class="stat-sub">out of {{ seats|length }} total seats</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Base Fare</div>
+    <div class="stat-value" style="color:var(--primary-container)">₱{{ '%.2f'|format(flight.fare) }}</div>
+    <div class="stat-sub">Status: {{ flight.status }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><span class="material-symbols-outlined">event_seat</span>Live Flight Seat Map (Dynamic Availability)</h2>
+      <p class="card-caption">Green = Available · Red = Reserved/Booked through sequential queue</p>
+    </div>
+    <div style="display:flex;gap:0.75rem">
+      <span class="badge badge-confirmed"><span class="material-symbols-outlined">check_circle</span>{{ available_count }} Available</span>
+      <span class="badge badge-rejected"><span class="material-symbols-outlined">cancel</span>{{ booked_count }} Reserved</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(65px, 1fr));gap:0.5rem">
+      {% for s in seats %}
+      <div style="border:1px solid {% if s.is_available %}#86efac{% else %}#fca5a5{% endif %};border-radius:6px;padding:6px;text-align:center;background:{% if s.is_available %}#f0fdf4{% else %}#fef2f2{% endif %}">
+        <div style="font-weight:700;font-size:13px;color:{% if s.is_available %}#16a34a{% else %}#dc2626{% endif %}">{{ s.seat_number }}</div>
+        <div style="font-size:9px;color:#64748b">{{ s.seat_position }}</div>
+        <div style="font-size:8px;font-weight:600;margin-top:2px;color:{% if s.is_available %}#16a34a{% else %}#dc2626{% endif %}">
+          {{ 'AVAIL' if s.is_available else 'BOOKED' }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

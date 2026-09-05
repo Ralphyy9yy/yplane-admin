@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Airports{% endblock %}
+{% block page_title %}Airport Network{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Airports Management</h1>
+    <p class="page-subtitle">Panglao–Bohol International Airport (TAG) home hub and destination airports.</p>
+  </div>
+  <a href="/admin/airports/new" class="btn-primary"><span class="material-symbols-outlined">add</span>Add Airport</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/airports">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search by IATA code, city, name...">
+      </div>
+      <button class="btn-secondary" type="submit">Search</button>
+      {% if search %}<a href="/admin/airports" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>IATA Code</th>
+          <th>Airport Name</th>
+          <th>City</th>
+          <th>Country</th>
+          <th>Type</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in airports %}
+        <tr>
+          <td><strong style="font-size:14px;color:var(--primary-container)">{{ a.airport_code }}</strong></td>
+          <td><strong>{{ a.airport_name }}</strong></td>
+          <td>{{ a.city }}</td>
+          <td>{{ a.country }}</td>
+          <td>
+            {% if a.airport_code == 'TAG' %}
+            <span class="badge badge-confirmed">HOME HUB</span>
+            {% else %}
+            <span class="badge badge-customer">DESTINATION</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem">
+              <a href="/admin/airports/{{ a.id }}/edit" class="btn-icon" title="Edit"><span class="material-symbols-outlined">edit</span></a>
+              {% if a.airport_code != 'TAG' %}
+              <form id="del-apt-{{ a.id }}" method="post" action="/admin/airports/{{ a.id }}/delete" style="display:inline">
+                <button type="button" class="btn-icon danger" onclick="confirmDelete('del-apt-{{ a.id }}', 'Delete airport {{ a.airport_code }}?')"><span class="material-symbols-outlined">delete</span></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6"><div class="empty-state"><h3>No airports found</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

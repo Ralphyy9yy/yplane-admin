@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}New Flight Route{% endblock %}
+{% block page_title %}New Route{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Add Flight Route</h1>
+    <p class="page-subtitle">Define an airport pair and flight characteristics.</p>
+  </div>
+  <a href="/admin/routes" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+</div>
+
+<div class="card" style="max-width:640px">
+  <div class="card-body">
+    <form method="post" action="/admin/routes/new">
+      <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Origin Airport *</label>
+            <select class="form-input" name="origin_airport_id" required>
+              {% for a in airports %}
+              <option value="{{ a.id }}" {% if a.airport_code == 'TAG' %}selected{% endif %}>{{ a.airport_code }} - {{ a.city }} ({{ a.airport_name }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Destination Airport *</label>
+            <select class="form-input" name="destination_airport_id" required>
+              {% for a in airports %}
+              <option value="{{ a.id }}">{{ a.airport_code }} - {{ a.city }} ({{ a.airport_name }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% if errors.origin_airport_id %}<div class="form-error">{{ errors.origin_airport_id }}</div>{% endif %}
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Flight Distance (km) *</label>
+            <input class="form-input" name="distance" type="number" step="0.1" placeholder="e.g. 630" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Duration (Hours &amp; Minutes) *</label>
+            <div style="display:flex;gap:.5rem">
+              <input class="form-input" name="duration_hours" type="number" min="0" max="23" value="1" placeholder="Hours" required>
+              <input class="form-input" name="duration_minutes" type="number" min="0" max="59" value="25" placeholder="Mins" required>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-top:.75rem;border-top:1px solid var(--surface-container)">
+          <a href="/admin/routes" class="btn-secondary">Cancel</a>
+          <button type="submit" class="btn-primary"><span class="material-symbols-outlined">save</span>Create Route</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

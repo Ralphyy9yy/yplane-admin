@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Schedules{% endblock %}
+{% block page_title %}Schedules{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Schedule Management</h1>
+    <p class="page-subtitle">Manage routes, timing, fares, and capacity. {{ schedules|length }} schedule(s) total.</p>
+  </div>
+  <a class="btn-primary" href="/admin/schedules/new"><span class="material-symbols-outlined">add</span>New Schedule</a>
+</div>
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/schedules">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search route...">
+      </div>
+      <button class="btn-secondary" type="submit">Search</button>
+      {% if search %}<a href="/admin/schedules" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Route</th><th>Departure</th><th>Arrival</th><th>Price</th><th>Seats</th><th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in schedules %}
+        <tr>
+          <td>
+            <strong>{{ s.route }}</strong><br>
+            {% if s.origin and s.destination %}
+            <span class="form-help">{{ s.origin }} → {{ s.destination }}</span>
+            {% endif %}
+          </td>
+          <td>{{ s.departure_time.strftime('%b %d, %Y %H:%M') }}</td>
+          <td>{{ s.arrival_time.strftime('%b %d, %Y %H:%M') }}</td>
+          <td><strong>₱{{ '%.2f'|format(s.price) }}</strong></td>
+          <td>
+            <span style="color:{% if s.available_seats == 0 %}var(--error){% elif s.available_seats < s.total_seats * 0.2 %}#d97706{% else %}var(--primary-container){% endif %};font-weight:600">
+              {{ s.available_seats }}
+            </span>
+            <span style="color:var(--secondary)"> / {{ s.total_seats }}</span>
+            <div class="progress-bar" style="max-width:80px;margin-top:4px">
+              <div class="progress-fill" style="width:{{ (s.available_seats / s.total_seats * 100)|int if s.total_seats > 0 else 0 }}%"></div>
+            </div>
+          </td>
+          <td style="text-align:right">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem">
+              <a class="btn-icon" href="/admin/schedules/{{ s.id }}/seats" title="Manage Seats"><span class="material-symbols-outlined">event_seat</span></a>
+              <a class="btn-icon" href="/admin/schedules/{{ s.id }}/edit" title="Edit"><span class="material-symbols-outlined">edit</span></a>
+              <form id="del-sch-{{ s.id }}" method="post" action="/admin/schedules/{{ s.id }}/delete" style="display:inline">
+                <button type="button" class="btn-icon danger" onclick="confirmDelete('del-sch-{{ s.id }}','Delete schedule: {{ s.route }}?')" title="Delete">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6"><div class="empty-state">
+          <h3>No schedules found</h3>
+          <p>{% if search %}No results for "{{ search }}". {% endif %}Create your first schedule.</p>
+        </div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

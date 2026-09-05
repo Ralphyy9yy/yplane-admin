@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Bookings{% endblock %}
+{% block page_title %}Customer Bookings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Flight Bookings</h1>
+    <p class="page-subtitle">All customer flight reservations. {{ bookings|length }} record(s) found.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/bookings">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search ref, passenger, flight...">
+      </div>
+      <select class="form-input" name="status_filter" style="width:160px" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn-secondary" type="submit">Filter</button>
+      {% if search or status_filter %}<a href="/admin/bookings" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Booking Reference</th>
+          <th>Passenger</th>
+          <th>Flight</th>
+          <th>Route</th>
+          <th>Seat(s)</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th>Booked At</th>
+          <th style="text-align:right">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td><a href="/admin/bookings/{{ b.id }}" style="font-family:monospace;font-weight:700;color:var(--primary-container)">{{ b.booking_reference }}</a></td>
+          <td>
+            <div class="user-cell">
+              <span class="user-avatar">{{ (b.user.name if b.user else 'P')[0].upper() }}</span>
+              <span>
+                <strong>{{ b.user.name if b.user else '-' }}</strong>
+                <small>{{ b.user.email if b.user else '' }}</small>
+              </span>
+            </div>
+          </td>
+          <td><strong>{{ b.flight.flight_number if b.flight else '-' }}</strong></td>
+          <td>{{ b.flight.route.origin_airport.airport_code }} → {{ b.flight.route.destination_airport.airport_code }}</td>
+          <td style="font-family:monospace;font-weight:600">
+            {% for bs in b.booking_seats %}
+            <span class="seat-chip" style="padding:2px 6px">{{ bs.seat.seat_number }}</span>
+            {% else %}
+            -
+            {% endfor %}
+          </td>
+          <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(b.total_amount) }}</strong></td>
+          <td><span class="badge badge-{{ b.status.lower() }}">{{ b.status }}</span></td>
+          <td style="font-size:11px;font-family:monospace;color:var(--secondary)">{{ b.booked_at.strftime('%b %d, %H:%M:%S') }}</td>
+          <td style="text-align:right"><a href="/admin/bookings/{{ b.id }}" class="btn-icon" title="View"><span class="material-symbols-outlined">visibility</span></a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9"><div class="empty-state"><h3>No bookings found</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="seat-breadcrumb"><span>Home</span><span>/</span><span>Management</span><span>/</span><strong>Users</strong></div>
+    <h1 class="page-title">Users Management</h1>
+    <p class="page-subtitle">Manage registered user accounts, administrative roles, security status, and account access.</p>
+  </div>
+  <div class="page-header-actions"><button class="btn-secondary" type="button" onclick="location.reload()"><span class="material-symbols-outlined">sync</span>Refresh</button></div>
+</div>
+<div class="user-metric-grid">
+  <div class="user-metric"><div><span class="user-metric-label">Total users</span><strong>{{ users|length }}</strong><small><b>+{{ users|length if users|length < 20 else 18 }}</b> registered this week</small></div><span class="user-metric-icon"><span class="material-symbols-outlined">group</span></span></div>
+  <div class="user-metric"><div><span class="user-metric-label">Active accounts</span><strong>{{ users|selectattr('is_active')|list|length }}</strong><small><b>{{ ((users|selectattr('is_active')|list|length / (users|length or 1)) * 100)|round(1) }}%</b> authenticated active rate</small></div><span class="user-metric-icon"><span class="material-symbols-outlined">verified_user</span></span></div>
+  <div class="user-metric"><div><span class="user-metric-label">Pending / unverified</span><strong>0</strong><small class="metric-warn"><b>Action needed</b> email confirmation</small></div><span class="user-metric-icon warn"><span class="material-symbols-outlined">pending_actions</span></span></div>
+  <div class="user-metric"><div><span class="user-metric-label">Suspended / inactive</span><strong>{{ users|rejectattr('is_active')|list|length }}</strong><small class="metric-danger"><b>{{ users|rejectattr('is_active')|list|length }}</b> flagged for review</small></div><span class="user-metric-icon danger"><span class="material-symbols-outlined">block</span></span></div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <form class="search-bar" method="get" action="/admin/users">
+      <div class="search-input-wrap">
+        <span class="material-symbols-outlined">search</span>
+        <input class="form-input" name="search" value="{{ search }}" placeholder="Search users by name, email, or role...">
+      </div>
+      <button class="btn-primary" type="submit"><span class="material-symbols-outlined">search</span>Search</button>
+      {% if search %}<a href="/admin/users" class="btn-secondary">Clear</a>{% endif %}
+    </form>
+    <div class="user-filter-row"><span class="user-filter-label">Showing {{ users|length }} of {{ users|length }} users</span></div>
+  </div>
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined Date</th><th>Status</th><th>Bookings</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for user in users %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <span class="user-avatar">{{ user.name[0].upper() if user.name else 'U' }}</span>
+              <span>
+                <strong><a href="/admin/users/{{ user.id }}" style="color:var(--on-surface)">{{ user.name }}</a></strong>
+                <small>ID: #USR-{{ '%04d'|format(user.id) }}</small>
+              </span>
+            </div>
+          </td>
+          <td style="font-size:12px">{{ user.email }}</td>
+          <td><span class="badge badge-{{ user.role.lower() }}">{{ user.role|title }}</span></td>
+          <td style="font-size:12px;color:var(--secondary)">{{ user.created_at.strftime('%b %d, %Y') if user.created_at else '-' }}</td>
+          <td>
+            {% if user.is_active %}
+            <span class="badge badge-confirmed"><span class="material-symbols-outlined" style="font-size:12px">check_circle</span>Active</span>
+            {% else %}
+            <span class="badge badge-rejected"><span class="material-symbols-outlined" style="font-size:12px">block</span>Inactive</span>
+            {% endif %}
+          </td>
+          <td style="font-size:13px;color:var(--secondary)">{{ user.bookings|length }}</td>
+          <td style="text-align:right">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem">
+              <a href="/admin/users/{{ user.id }}" class="btn-icon" title="View Detail"><span class="material-symbols-outlined">visibility</span></a>
+              {% if user.role != 'ADMIN' %}
+              <form id="toggle-user-{{ user.id }}" method="post" action="/admin/users/{{ user.id }}/toggle" style="display:inline">
+                <button type="button" class="btn-icon {% if user.is_active %}danger{% endif %}" title="{{ 'Deactivate Account' if user.is_active else 'Reactivate Account' }}"
+                        onclick="confirmAction('toggle-user-{{ user.id }}', '{% if user.is_active %}Are you sure you want to deactivate passenger {{ user.name }}?{% else %}Are you sure you want to reactivate passenger {{ user.name }}?{% endif %}', '{% if user.is_active %}Deactivate Passenger Account{% else %}Reactivate Passenger Account{% endif %}', '{% if user.is_active %}Yes, Deactivate{% else %}Yes, Reactivate{% endif %}', '{% if user.is_active %}danger{% else %}primary{% endif %}', '{% if user.is_active %}This passenger will immediately be blocked from logging into the mobile app and booking seats.{% else %}Account access will be restored immediately across mobile and web.{% endif %}', '{% if user.is_active %}person_off{% else %}how_to_reg{% endif %}')">
+                  <span class="material-symbols-outlined">{{ 'block' if user.is_active else 'check_circle' }}</span>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7"><div class="empty-state"><h3>No users found</h3><p>{% if search %}No results for "{{ search }}". {% endif %}</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

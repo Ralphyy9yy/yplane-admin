@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Booking {{ booking.booking_reference }}{% endblock %}
+{% block page_title %}Booking Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Booking {{ booking.booking_reference }}</h1>
+    <p class="page-subtitle">Submitted on {{ booking.booked_at.strftime('%B %d, %Y at %H:%M:%S') }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/admin/bookings" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+    {% if booking.status in ['PENDING', 'CONFIRMED'] %}
+    <form id="cancel-booking-form" method="post" action="/admin/bookings/{{ booking.id }}/cancel" style="display:inline" onsubmit="return confirm('Cancel booking {{ booking.booking_reference }} and release its seat?');">
+      <button type="submit" class="btn-danger">
+        <span class="material-symbols-outlined">cancel</span>Cancel Booking (Admin Override)
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+  <div class="card">
+    <div class="card-header"><h2 class="card-title"><span class="material-symbols-outlined">info</span>Passenger &amp; Reservation Details</h2></div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-label">Reference</div>
+        <div class="detail-value" style="font-family:monospace;font-weight:700;font-size:15px">{{ booking.booking_reference }}</div>
+
+        <div class="detail-label">Status</div>
+        <div class="detail-value"><span class="badge badge-{{ booking.status.lower() }}">{{ booking.status }}</span></div>
+
+        <div class="detail-label">Passenger</div>
+        <div class="detail-value">{{ booking.user.name if booking.user else '-' }}</div>
+
+        <div class="detail-label">Email</div>
+        <div class="detail-value">{{ booking.user.email if booking.user else '-' }}</div>
+
+        <div class="detail-label">Flight</div>
+        <div class="detail-value"><strong>{{ booking.flight.flight_number }}</strong> ({{ booking.flight.route.origin_airport.airport_code }} → {{ booking.flight.route.destination_airport.airport_code }})</div>
+
+        <div class="detail-label">Departure</div>
+        <div class="detail-value">{{ booking.flight.departure_date.strftime('%b %d, %Y') }} at {{ booking.flight.departure_time.strftime('%H:%M') }}</div>
+
+        <div class="detail-label">Reserved Seat(s)</div>
+        <div class="detail-value" style="font-family:monospace;font-weight:700;color:var(--primary-container)">
+          {% for bs in booking.booking_seats %}
+            {{ bs.seat.seat_number }} ({{ bs.seat.seat_type }})
+          {% else %}
+            No seat assigned
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="card-title"><span class="material-symbols-outlined">receipt_long</span>Payment &amp; Transaction Details</h2></div>
+    <div class="card-body">
+      {% if booking.payment %}
+      <div class="detail-grid">
+        <div class="detail-label">Transaction Ref</div>
+        <div class="detail-value" style="font-family:monospace;font-weight:700">{{ booking.payment.transaction_reference }}</div>
+
+        <div class="detail-label">Amount Paid</div>
+        <div class="detail-value" style="font-size:20px;font-weight:700;color:var(--primary-container)">₱{{ '%.2f'|format(booking.payment.amount) }}</div>
+
+        <div class="detail-label">Method</div>
+        <div class="detail-value">{{ booking.payment.payment_method }}</div>
+
+        <div class="detail-label">Payment Status</div>
+        <div class="detail-value"><span class="badge badge-{{ booking.payment.status.lower() }}">{{ booking.payment.status }}</span></div>
+
+        <div class="detail-label">Timestamp</div>
+        <div class="detail-value" style="font-size:12px;font-family:monospace">{{ booking.payment.paid_at.strftime('%Y-%m-%d %H:%M:%S') if booking.payment.paid_at else '-' }}</div>
+      </div>
+      {% else %}
+      <div class="empty-state"><h3>No payment record</h3></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

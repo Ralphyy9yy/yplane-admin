@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Seats — {{ schedule.route }}{% endblock %}
+{% block page_title %}Seat Management{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="seat-breadcrumb"><a href="/admin/schedules">Schedules</a><span>/</span><span>{{ schedule.route }}</span></div>
+    <h1 class="page-title">Seat Management</h1>
+    <p class="page-subtitle">Live seat inventory and manual reservation controls for {{ schedule.route }}.</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn-secondary" href="/admin/schedules"><span class="material-symbols-outlined">arrow_back</span>Back</a>
+    <button class="btn-secondary" type="button" onclick="location.reload()"><span class="material-symbols-outlined">sync</span>Refresh Map</button>
+    <a class="btn-primary" href="#add-seat"><span class="material-symbols-outlined">add</span>Add Seat</a>
+  </div>
+</div>
+{% if error %}<div class="alert alert-error"><span class="material-symbols-outlined">error</span>{{ error }}</div>{% endif %}
+<div class="seat-stat-grid">
+  <div class="seat-stat-card"><span class="seat-stat-label">Total capacity</span><strong>{{ schedule.total_seats }}</strong><small>Configured seats</small></div>
+  <div class="seat-stat-card seat-stat-available"><span class="seat-stat-label">Available</span><strong>{{ seats|selectattr('status.value','equalto','available')|list|length }}</strong><small>Open for booking</small></div>
+  <div class="seat-stat-card seat-stat-reserved"><span class="seat-stat-label">Reserved</span><strong>{{ seats|selectattr('status.value','equalto','reserved')|list|length }}</strong><small>Held temporarily</small></div>
+  <div class="seat-stat-card seat-stat-booked"><span class="seat-stat-label">Booked / sold</span><strong>{{ seats|selectattr('status.value','equalto','booked')|list|length }}</strong><small>Confirmed allocation</small></div>
+</div>
+<div class="seat-workspace">
+  <section class="card seat-map-card">
+    <div class="card-header seat-map-header">
+      <div><h2 class="card-title"><span class="material-symbols-outlined">grid_view</span>Cabin Layout &amp; Seat Grid</h2><p class="seat-map-caption">Click a seat to inspect or edit its status.</p></div>
+      <div class="seat-legend"><span><i class="seat-dot available"></i>Available</span><span><i class="seat-dot reserved"></i>Reserved</span><span><i class="seat-dot booked"></i>Booked</span></div>
+    </div>
+    <div class="seat-map">
+      <div class="seat-map-front"><span class="material-symbols-outlined">directions_bus</span>Front of vehicle</div>
+      {% for seat in seats %}
+      <button type="button" class="seat-tile {{ seat.status.value }}" onclick="selectSeat(this, '{{ seat.id }}', '{{ seat.seat_number }}', '{{ seat.status.value }}')" title="{{ seat.seat_number }}: {{ seat.status.value|title }}">
+        <strong>{{ seat.seat_number }}</strong><span class="seat-tile-status">{{ seat.status.value|title }}</span>
+      </button>
+      {% else %}
+      <div class="empty-state seat-empty"><div class="empty-state-icon"><span class="material-symbols-outlined">event_seat</span></div><h3>No seats configured</h3><p>Add seats to populate the cabin map.</p></div>
+      {% endfor %}
+    </div>
+    <div class="seat-map-footer"><span><span class="material-symbols-outlined">emergency</span> Emergency exit</span><span><span class="material-symbols-outlined">stairs</span> Aisle</span><span>{{ seats|length }} seats shown</span></div>
+  </section>
+  <aside class="seat-side-panel">
+    <div class="card seat-inspector">
+      <div class="card-header"><h2 class="card-title"><span class="material-symbols-outlined">tune</span>Seat Inspector</h2><span class="badge badge-available" id="inspector-status">Select seat</span></div>
+      <div class="card-body">
+        <div class="inspector-seat"><div class="inspector-seat-icon" id="inspector-icon">?</div><div><strong id="inspector-number">No seat selected</strong><small>{{ schedule.route }}</small></div></div>
+        <div class="detail-grid inspector-details"><div class="detail-label">Class</div><div class="detail-value">Standard</div><div class="detail-label">Price</div><div class="detail-value">₱{{ '%.2f'|format(schedule.price) }}</div><div class="detail-label">Schedule</div><div class="detail-value">{{ schedule.departure_time.strftime('%b %d, %H:%M') if schedule.departure_time else '-' }}</div></div>
+        <div class="inspector-actions"><button type="button" class="btn-secondary" id="inspector-edit" disabled><span class="material-symbols-outlined">edit</span>Edit seat</button><form id="inspector-delete" method="post" action=""><button type="submit" class="btn-icon danger" id="inspector-delete-button" disabled title="Delete selected seat"><span class="material-symbols-outlined">delete</span></button></form></div>
+      </div>
+    </div>
+    <div class="card" id="add-seat">
+      <div class="card-header"><h2 class="card-title"><span class="material-symbols-outlined">add_circle</span>Add Seat</h2></div>
+      <div class="card-body">
+        <form method="post" action="/admin/schedules/{{ schedule.id }}/seats">
+          <div style="display:flex;flex-direction:column;gap:1rem">
+            <div class="form-field">
+              <label class="form-label">Seat Number *</label>
+              <input class="form-input" name="seat_number" type="text" placeholder="e.g. A1, 01A, 1B" required>
+              <div class="form-help">Must be unique for this schedule.</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Initial Status</label>
+              <select class="form-input" name="status">
+                {% for st in statuses %}
+                <option value="{{ st.value }}">{{ st.value|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn-primary w-full"><span class="material-symbols-outlined">add</span>Add Seat</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Edit Seat Modal -->
+<div class="modal-backdrop" id="edit-seat-modal">
+  <div class="modal">
+    <h2 class="modal-title">Edit Seat</h2>
+    <form method="post" id="edit-seat-form" action="">
+      <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem">
+        <div class="form-field">
+          <label class="form-label">Seat Number</label>
+          <input class="form-input" name="seat_number" id="edit-seat-number" type="text" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Status</label>
+          <select class="form-input" name="status" id="edit-seat-status">
+            {% for st in statuses %}
+            <option value="{{ st.value }}">{{ st.value|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal('edit-seat-modal')">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openEditSeatModal(id, num, status) {
+  document.getElementById('edit-seat-form').action = '/admin/seats/' + id + '/edit';
+  document.getElementById('edit-seat-number').value = num;
+  document.getElementById('edit-seat-status').value = status;
+  openModal('edit-seat-modal');
+}
+function selectSeat(element, id, number, status) {
+  document.querySelectorAll('.seat-tile.selected').forEach(function(tile) { tile.classList.remove('selected'); });
+  element.classList.add('selected');
+  document.getElementById('inspector-icon').textContent = number;
+  document.getElementById('inspector-number').textContent = 'Seat ' + number;
+  var statusElement = document.getElementById('inspector-status');
+  statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+  statusElement.className = 'badge badge-' + status;
+  var editButton = document.getElementById('inspector-edit');
+  editButton.disabled = false;
+  editButton.onclick = function() { openEditSeatModal(id, number, status); };
+  var deleteForm = document.getElementById('inspector-delete');
+  deleteForm.action = '/admin/seats/' + id + '/delete';
+  document.getElementById('inspector-delete-button').disabled = false;
+  deleteForm.onsubmit = function() { return confirm('Delete seat ' + number + '?'); };
+}
+</script>
+{% endblock %}

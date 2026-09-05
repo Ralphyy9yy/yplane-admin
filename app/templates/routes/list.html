@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Flight Routes{% endblock %}
+{% block page_title %}Route Network{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Flight Routes</h1>
+    <p class="page-subtitle">Configured origin and destination airport pairs centered on Panglao (TAG).</p>
+  </div>
+  <a href="/admin/routes/new" class="btn-primary"><span class="material-symbols-outlined">add</span>New Route</a>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Route ID</th>
+          <th>Origin Hub</th>
+          <th>Destination</th>
+          <th>Distance (km)</th>
+          <th>Est. Duration</th>
+          <th>Connected Flights</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in routes %}
+        <tr>
+          <td style="font-family:monospace;font-weight:700">#{{ r.id }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span class="badge badge-confirmed">{{ r.origin_airport.airport_code }}</span>
+              <span>{{ r.origin_airport.city }}</span>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span class="badge badge-customer">{{ r.destination_airport.airport_code }}</span>
+              <span>{{ r.destination_airport.city }}</span>
+            </div>
+          </td>
+          <td><strong>{{ r.distance or '-' }} km</strong></td>
+          <td>{{ r.estimated_duration.strftime('%Hh %Mm') if r.estimated_duration else '-' }}</td>
+          <td><span class="badge badge-available">{{ r.flights|length }} flights</span></td>
+          <td style="text-align:right">
+            <form id="del-rt-{{ r.id }}" method="post" action="/admin/routes/{{ r.id }}/delete" style="display:inline">
+              <button type="button" class="btn-icon danger" onclick="confirmDelete('del-rt-{{ r.id }}', 'Delete route?')"><span class="material-symbols-outlined">delete</span></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><div class="empty-state"><h3>No routes configured</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" %}
+</div>
+{% endblock %}

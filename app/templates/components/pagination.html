@@ -1,0 +1,39 @@
+{% if pagination and (pagination.total_pages > 1 or pagination.total > 0) %}
+<div class="pagination">
+  <div class="pagination-info">
+    Showing <strong>{{ pagination.start_idx }}</strong> to <strong>{{ pagination.end_idx }}</strong> of <strong>{{ pagination.total }}</strong> entries
+  </div>
+  <div class="pagination-btns">
+    {% if pagination.has_prev %}
+      <a href="?page={{ pagination.prev_page }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}" class="page-btn" title="Previous Page">
+        <span class="material-symbols-outlined" style="font-size:16px">chevron_left</span>
+      </a>
+    {% else %}
+      <span class="page-btn disabled" aria-disabled="true">
+        <span class="material-symbols-outlined" style="font-size:16px">chevron_left</span>
+      </span>
+    {% endif %}
+
+    {% for p in range(1, pagination.total_pages + 1) %}
+      {% if p == pagination.page %}
+        <span class="page-btn active">{{ p }}</span>
+      {% elif p <= 2 or p > pagination.total_pages - 2 or (p >= pagination.page - 1 and p <= pagination.page + 1) %}
+        <a href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}" class="page-btn">{{ p }}</a>
+      {% elif p == 3 or p == pagination.total_pages - 2 %}
+        <span class="page-btn disabled">...</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if pagination.has_next %}
+      <a href="?page={{ pagination.next_page }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}" class="page-btn" title="Next Page">
+        <span class="material-symbols-outlined" style="font-size:16px">chevron_right</span>
+      </a>
+    {% else %}
+      <span class="page-btn disabled" aria-disabled="true">
+        <span class="material-symbols-outlined" style="font-size:16px">chevron_right</span>
+      </span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+

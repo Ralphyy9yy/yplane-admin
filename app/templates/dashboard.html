@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Overview{% endblock %}
+{% block page_title %}Operations Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Flight Operations Overview</h1>
+    <p class="page-subtitle">Panglao–Bohol International Airport (TAG) Hub · Live metrics &amp; serialized transaction status.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/admin/queue" class="btn-primary">
+      <span class="material-symbols-outlined">view_timeline</span>
+      Live Queue Monitor
+    </a>
+    <a href="/admin/flights/new" class="btn-secondary">
+      <span class="material-symbols-outlined">add</span>
+      Schedule Flight
+    </a>
+  </div>
+</div>
+
+<div class="stat-grid dashboard-stats">
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Active Aircraft</span>
+      <span class="stat-icon"><span class="material-symbols-outlined">airlines</span></span>
+    </div>
+    <div><span class="stat-value">{{ stats.airplanes }}</span><span class="stat-unit"> In Fleet</span></div>
+    <div class="stat-sub"><span class="trend-up">TAG Hub</span> RP-C8810 · RP-C3230 · RP-C5521</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Hub Routes &amp; Flights</span>
+      <span class="stat-icon"><span class="material-symbols-outlined">connecting_airports</span></span>
+    </div>
+    <div><span class="stat-value">{{ stats.flights }}</span><span class="stat-unit"> Scheduled Flights</span></div>
+    <div class="stat-sub">{{ stats.routes }} routes connected to Panglao (MNL, DVO, ILO, ENI, CRK)</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Confirmed Reservations</span>
+      <span class="stat-icon"><span class="material-symbols-outlined">airplane_ticket</span></span>
+    </div>
+    <div><span class="stat-value">{{ stats.confirmed }}</span><span class="stat-unit"> Bookings</span><strong class="stat-side">₱{{ '%.2f'|format(stats.revenue) }}</strong></div>
+    <div class="stat-sub">{{ stats.passengers }} registered passengers · Queue Depth: {{ stats.queue_depth }}</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:1.5rem;align-items:start">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title"><span class="material-symbols-outlined">airplane_ticket</span>Recent Flight Bookings</h2>
+        <p class="card-caption">Latest customer reservations processed through the sequential pipeline</p>
+      </div>
+      <a class="table-link" href="/admin/bookings">View all <span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+    <div class="table-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Ref / Passenger</th>
+            <th>Flight &amp; Route</th>
+            <th>Seat</th>
+            <th>Fare</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in recent_bookings %}
+          <tr>
+            <td>
+              <div class="user-cell">
+                <span class="user-avatar">{{ (b.user.name if b.user else 'P')[0].upper() }}</span>
+                <span>
+                  <strong><a href="/admin/bookings/{{ b.id }}" style="color:var(--on-surface)">{{ b.booking_reference }}</a></strong>
+                  <small>{{ b.user.name if b.user else 'Unknown' }}</small>
+                </span>
+              </div>
+            </td>
+            <td>
+              <strong>{{ b.flight.flight_number if b.flight else '-' }}</strong><br>
+              <span class="form-help">{{ b.flight.route.origin_airport.airport_code if b.flight and b.flight.route else '' }} → {{ b.flight.route.destination_airport.airport_code if b.flight and b.flight.route else '' }}</span>
+            </td>
+            <td style="font-family:monospace;font-weight:600">
+              {% for bs in b.booking_seats %}
+                <span class="seat-chip" style="padding:2px 6px">{{ bs.seat.seat_number }}</span>
+              {% else %}
+                -
+              {% endfor %}
+            </td>
+            <td style="font-weight:600">₱{{ '%.2f'|format(b.total_amount) }}</td>
+            <td><span class="badge badge-{{ b.status.lower() }}">{{ b.status }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5"><div class="empty-state"><h3>No bookings yet</h3><p>Booking requests will appear here as they are confirmed.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title"><span class="material-symbols-outlined">view_timeline</span>Sequential Stream</h2>
+        <p class="card-caption">Single dedicated FIFO worker audit trail</p>
+      </div>
+      <span class="queue-live-badge"><span class="queue-live-dot"></span>Worker Active</span>
+    </div>
+    <div style="padding:1rem">
+      {% for log in recent_logs %}
+      <div style="padding:0.75rem;border-radius:8px;background:var(--surface-container-low);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.75rem">
+        <span class="material-symbols-outlined" style="font-size:18px;color:{% if log.status == 'SUCCESS' %}#16a34a{% elif log.status == 'REJECTED' %}#dc2626{% else %}#d97706{% endif %}">
+          {% if log.status == 'SUCCESS' %}check_circle{% elif log.status == 'REJECTED' %}cancel{% else %}sync{% endif %}
+        </span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;display:flex;justify-content:space-between">
+            <span>{{ log.action }}</span>
+            <span style="font-size:10px;color:var(--secondary)">{{ log.started_at.strftime('%H:%M:%S') }}</span>
+          </div>
+          <div style="font-size:11px;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            {{ log.message or log.status }}
+          </div>
+        </div>
+        <span class="badge badge-{{ log.status.lower() }}">{{ log.status }}</span>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:2rem 1rem">
+        <span class="material-symbols-outlined" style="font-size:24px;color:var(--secondary)">inbox</span>
+        <p style="font-size:12px;margin-top:0.5rem">No recent queue events logged yet.</p>
+      </div>
+      {% endfor %}
+
+      <div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.5rem">
+        <form method="post" action="/admin/queue/demo-5-for-1">
+          <button type="submit" class="btn-primary w-full">
+            <span class="material-symbols-outlined">play_arrow</span>
+            Run 5-for-1 Demo (Panglao)
+          </button>
+        </form>
+        <a href="/admin/queue" class="btn-secondary w-full text-center">
+          <span class="material-symbols-outlined">open_in_full</span>
+          Open Full Monitor
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
