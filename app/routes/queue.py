@@ -54,7 +54,7 @@ async def queue_monitor(request: Request, page: int = 1, db: Session = Depends(g
     failed_count = status_counts.get("FAILED", 0)
     queue_depth = queue_service.get_queue_depth()
 
-    return templates.TemplateResponse("queue/monitor.html", {
+    return templates.TemplateResponse(request=request, name="queue/monitor.html", context={
         "request": request,
         "admin": admin,
         "logs": paginated["items"],
@@ -81,7 +81,7 @@ async def queue_table(request: Request, db: Session = Depends(get_db)):
         .limit(50)
         .all()
     )
-    return templates.TemplateResponse("queue/table_partial.html", {
+    return templates.TemplateResponse(request=request, name="queue/table_partial.html", context={
         "request": request,
         "logs": logs
     })
@@ -125,7 +125,7 @@ async def run_5_customers_1_seat_demo(request: Request, db: Session = Depends(ge
         c_email = f"customer{i}@yplane.com"
         c = db.query(User).filter(User.email == c_email).first()
         if not c:
-            c = User(name=f"Passenger {i}", email=c_email, password="hashed", role="CUSTOMER")
+            c = User(name=f"Passenger {i}", email=c_email, password_hash="hashed", role="CUSTOMER")
             db.add(c)
             db.flush()
         customers.append(c)
@@ -133,7 +133,7 @@ async def run_5_customers_1_seat_demo(request: Request, db: Session = Depends(ge
 
     # Fire all 5 requests simultaneously into the FIFO queue!
     for customer in customers:
-        queue_service.enqueue_booking(customer.id, flight.id, seat.id, flight.fare)
+        queue_service.enqueue_booking(customer.id, flight.id, seat.id, flight.price)
 
     return RedirectResponse(url="/admin/queue", status_code=303)
 
@@ -161,7 +161,7 @@ async def run_2_customers_1_seat_demo(request: Request, db: Session = Depends(ge
     c1 = db.query(User).filter(User.email == "customer1@yplane.com").first()
     c2 = db.query(User).filter(User.email == "customer2@yplane.com").first()
 
-    queue_service.enqueue_booking(c1.id, flight.id, seat.id, flight.fare)
-    queue_service.enqueue_booking(c2.id, flight.id, seat.id, flight.fare)
+    queue_service.enqueue_booking(c1.id, flight.id, seat.id, flight.price)
+    queue_service.enqueue_booking(c2.id, flight.id, seat.id, flight.price)
 
     return RedirectResponse(url="/admin/queue", status_code=303)

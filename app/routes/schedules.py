@@ -28,9 +28,7 @@ async def list_schedules(request: Request, search: str = "", db: Session = Depen
     if search:
         query = query.filter(Schedule.route.ilike(f"%{search}%"))
     schedules = query.order_by(Schedule.departure_time.desc()).all()
-    return templates.TemplateResponse(
-        "schedules/list.html",
-        {"request": request, "admin": admin, "schedules": schedules, "search": search, "active_page": "schedules"},
+    return templates.TemplateResponse(request=request, name="schedules/list.html", context={"request": request, "admin": admin, "schedules": schedules, "search": search, "active_page": "schedules"},
     )
 
 
@@ -39,9 +37,7 @@ async def new_schedule_form(request: Request, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    return templates.TemplateResponse(
-        "schedules/form.html",
-        {"request": request, "admin": admin, "schedule": None, "errors": {}, "active_page": "schedules"},
+    return templates.TemplateResponse(request=request, name="schedules/form.html", context={"request": request, "admin": admin, "schedule": None, "errors": {}, "active_page": "schedules"},
     )
 
 
@@ -77,9 +73,7 @@ async def create_schedule(
         dep_dt = arr_dt = datetime.utcnow()
 
     if errors:
-        return templates.TemplateResponse(
-            "schedules/form.html",
-            {"request": request, "admin": admin, "schedule": None, "errors": errors, "active_page": "schedules"},
+        return templates.TemplateResponse(request=request, name="schedules/form.html", context={"request": request, "admin": admin, "schedule": None, "errors": errors, "active_page": "schedules"},
             status_code=400,
         )
 
@@ -102,9 +96,7 @@ async def edit_schedule_form(request: Request, schedule_id: int, db: Session = D
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
-    return templates.TemplateResponse(
-        "schedules/form.html",
-        {"request": request, "admin": admin, "schedule": schedule, "errors": {}, "active_page": "schedules"},
+    return templates.TemplateResponse(request=request, name="schedules/form.html", context={"request": request, "admin": admin, "schedule": schedule, "errors": {}, "active_page": "schedules"},
     )
 
 
@@ -144,9 +136,7 @@ async def update_schedule(
         dep_dt = arr_dt = schedule.departure_time
 
     if errors:
-        return templates.TemplateResponse(
-            "schedules/form.html",
-            {"request": request, "admin": admin, "schedule": schedule, "errors": errors, "active_page": "schedules"},
+        return templates.TemplateResponse(request=request, name="schedules/form.html", context={"request": request, "admin": admin, "schedule": schedule, "errors": errors, "active_page": "schedules"},
             status_code=400,
         )
 

@@ -20,7 +20,7 @@
             <label class="form-label">Origin Airport *</label>
             <select class="form-input" name="origin_airport_id" required>
               {% for a in airports %}
-              <option value="{{ a.id }}" {% if a.airport_code == 'TAG' %}selected{% endif %}>{{ a.airport_code }} - {{ a.city }} ({{ a.airport_name }})</option>
+              <option value="{{ a.id }}" {% if a.code == 'TAG' %}selected{% endif %}>{{ a.code }} - {{ a.city }} ({{ a.name }})</option>
               {% endfor %}
             </select>
           </div>
@@ -28,7 +28,7 @@
             <label class="form-label">Destination Airport *</label>
             <select class="form-input" name="destination_airport_id" required>
               {% for a in airports %}
-              <option value="{{ a.id }}">{{ a.airport_code }} - {{ a.city }} ({{ a.airport_name }})</option>
+              <option value="{{ a.id }}">{{ a.code }} - {{ a.city }} ({{ a.name }})</option>
               {% endfor %}
             </select>
           </div>

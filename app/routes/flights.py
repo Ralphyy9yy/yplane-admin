@@ -33,7 +33,7 @@ async def list_flights(request: Request, search: str = "", page: int = 1, db: Se
     cache_key = f"flights_list_{page}_{search}"
     cached = cache_get(cache_key)
     if cached is not None:
-        return templates.TemplateResponse("flights/list.html", {
+        return templates.TemplateResponse(request=request, name="flights/list.html", context={
             "request": request, "admin": admin,
             "flights": cached["flight_data"],
             "pagination": cached["paginated"],
@@ -47,8 +47,8 @@ async def list_flights(request: Request, search: str = "", page: int = 1, db: Se
         .join(Flight.airplane)
     )
     if search:
-        query = query.filter((Flight.flight_number.ilike(f"%{search}%")) | (Airplane.airplane_name.ilike(f"%{search}%")))
-    query = query.order_by(Flight.departure_date.desc(), Flight.departure_time.asc())
+        query = query.filter((Flight.flight_number.ilike(f"%{search}%")) | (Airplane.model_number.ilike(f"%{search}%")))
+    query = query.order_by(Flight.departure_time.desc())
     paginated = paginate_query(query, page=page, page_size=10)
 
     # Single aggregate query: count booked seats per flight in one round-trip
@@ -81,7 +81,7 @@ async def list_flights(request: Request, search: str = "", page: int = 1, db: Se
 
     cache_set(cache_key, {"flight_data": flight_data, "paginated": paginated}, ttl=5)
 
-    return templates.TemplateResponse("flights/list.html", {
+    return templates.TemplateResponse(request=request, name="flights/list.html", context={
         "request": request, "admin": admin, "flights": flight_data, "pagination": paginated, "search": search, "active_page": "flights"
     })
 
@@ -91,8 +91,8 @@ async def new_flight_form(request: Request, db: Session = Depends(get_db)):
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
     routes = db.query(Route).all()
-    airplanes = db.query(Airplane).filter(Airplane.status == "ACTIVE").all()
-    return templates.TemplateResponse("flights/form.html", {
+    airplanes = db.query(Airplane).all()
+    return templates.TemplateResponse(request=request, name="flights/form.html", context={
         "request": request, "admin": admin, "flight": None, "routes": routes, "airplanes": airplanes, "errors": {}, "active_page": "flights"
     })
 
@@ -116,15 +116,26 @@ async def create_flight(
     dep_d = date.fromisoformat(departure_date)
     dep_t = dt_time.fromisoformat(departure_time)
     arr_t = dt_time.fromisoformat(arrival_time)
+    
+    # Combine date and time to timezone-aware datetime assuming local timezone for simplicity
+    dep_dt = datetime.combine(dep_d, dep_t)
+    # Estimate arrival dt based on time (if arr_t < dep_t, it's next day)
+    arr_dt = datetime.combine(dep_d, arr_t)
+    if arr_t < dep_t:
+        arr_dt = datetime.combine(dep_d + timedelta(days=1), arr_t)
+        
+    # Default available seats based on airplane
+    airplane = db.query(Airplane).filter(Airplane.id == airplane_id).first()
+    avail_seats = airplane.total_seats if airplane else 0
 
     flight = Flight(
         flight_number=fn,
         route_id=route_id,
         airplane_id=airplane_id,
-        departure_date=dep_d,
-        departure_time=dep_t,
-        arrival_time=arr_t,
-        fare=Decimal(str(fare)),
+        departure_time=dep_dt,
+        arrival_time=arr_dt,
+        price=Decimal(str(fare)),
+        available_seats=avail_seats,
         status=status
     )
     db.add(flight)
@@ -142,7 +153,7 @@ async def flight_detail(request: Request, flight_id: int, db: Session = Depends(
     seat_map = get_flight_seat_availability(db, flight_id)
     booked_count = sum(1 for s in seat_map if not s["is_available"])
     available_count = len(seat_map) - booked_count
-    return templates.TemplateResponse("flights/detail.html", {
+    return templates.TemplateResponse(request=request, name="flights/detail.html", context={
         "request": request,
         "admin": admin,
         "flight": flight,

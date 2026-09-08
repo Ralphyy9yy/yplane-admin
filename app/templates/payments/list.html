@@ -42,7 +42,7 @@
           <td>{{ p.booking.user.name if p.booking and p.booking.user else '-' }}</td>
           <td><strong style="font-size:14px">₱{{ '%.2f'|format(p.amount) }}</strong></td>
           <td>{{ p.payment_method }}</td>
-          <td><span class="badge badge-{{ p.status.lower() }}">{{ p.status }}</span></td>
+          <td><span class="badge badge-{{ p.payment_status.lower() }}">{{ p.payment_status }}</span></td>
           <td style="font-size:11px;font-family:monospace;color:var(--secondary)">{{ p.paid_at.strftime('%b %d, %Y %H:%M:%S') if p.paid_at else '-' }}</td>
         </tr>
         {% else %}

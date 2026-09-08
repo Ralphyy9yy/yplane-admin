@@ -28,12 +28,12 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     # --- Cached stats (10s TTL) ---
     stats = cache_get("dashboard_stats")
     if stats is None:
-        total_airplanes   = db.query(func.count(Airplane.id)).filter(Airplane.status == "ACTIVE").scalar() or 0
+        total_airplanes   = db.query(func.count(Airplane.id)).scalar() or 0
         total_routes      = db.query(func.count(Route.id)).scalar() or 0
         total_flights     = db.query(func.count(Flight.id)).scalar() or 0
         confirmed_bookings= db.query(func.count(Booking.id)).filter(Booking.status == "CONFIRMED").scalar() or 0
         total_passengers  = db.query(func.count(User.id)).filter(User.role == "CUSTOMER").scalar() or 0
-        total_revenue     = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(Payment.status == "PAID").scalar() or 0
+        total_revenue     = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(Payment.payment_status == "COMPLETED").scalar() or 0
         stats = {
             "airplanes":  total_airplanes,
             "routes":     total_routes,
@@ -52,7 +52,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         recent_bookings = (
             db.query(Booking)
             .options(joinedload(Booking.user), joinedload(Booking.flight))
-            .order_by(Booking.booked_at.desc())
+            .order_by(Booking.created_at.desc())
             .limit(8)
             .all()
         )
@@ -69,7 +69,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         )
         cache_set("dashboard_recent_logs", recent_logs, ttl=3)
 
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={
         "request": request,
         "admin": admin,
         "stats": stats,

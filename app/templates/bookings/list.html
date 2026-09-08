@@ -56,7 +56,7 @@
             </div>
           </td>
           <td><strong>{{ b.flight.flight_number if b.flight else '-' }}</strong></td>
-          <td>{{ b.flight.route.origin_airport.airport_code }} → {{ b.flight.route.destination_airport.airport_code }}</td>
+          <td>{{ b.flight.route.origin_airport.code }} → {{ b.flight.route.destination_airport.code }}</td>
           <td style="font-family:monospace;font-weight:600">
             {% for bs in b.booking_seats %}
             <span class="seat-chip" style="padding:2px 6px">{{ bs.seat.seat_number }}</span>
@@ -66,7 +66,7 @@
           </td>
           <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(b.total_amount) }}</strong></td>
           <td><span class="badge badge-{{ b.status.lower() }}">{{ b.status }}</span></td>
-          <td style="font-size:11px;font-family:monospace;color:var(--secondary)">{{ b.booked_at.strftime('%b %d, %H:%M:%S') }}</td>
+          <td style="font-size:11px;font-family:monospace;color:var(--secondary)">{{ b.created_at.strftime('%b %d, %H:%M:%S') }}</td>
           <td style="text-align:right"><a href="/admin/bookings/{{ b.id }}" class="btn-icon" title="View"><span class="material-symbols-outlined">visibility</span></a></td>
         </tr>
         {% else %}

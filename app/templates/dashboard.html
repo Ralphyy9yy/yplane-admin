@@ -83,7 +83,7 @@
             </td>
             <td>
               <strong>{{ b.flight.flight_number if b.flight else '-' }}</strong><br>
-              <span class="form-help">{{ b.flight.route.origin_airport.airport_code if b.flight and b.flight.route else '' }} → {{ b.flight.route.destination_airport.airport_code if b.flight and b.flight.route else '' }}</span>
+              <span class="form-help">{{ b.flight.route.origin_airport.code if b.flight and b.flight.route else '' }} → {{ b.flight.route.destination_airport.code if b.flight and b.flight.route else '' }}</span>
             </td>
             <td style="font-family:monospace;font-weight:600">
               {% for bs in b.booking_seats %}
@@ -92,7 +92,7 @@
                 -
               {% endfor %}
             </td>
-            <td style="font-weight:600">₱{{ '%.2f'|format(b.total_amount) }}</td>
+            <td style="font-weight:600">${{ '%.2f'|format(b.total_amount) }}<br><small style="color:var(--secondary);font-weight:normal;font-size:0.85em">₱{{ '%.2f'|format((b.total_amount|float) * 56.50) }}</small></td>
             <td><span class="badge badge-{{ b.status.lower() }}">{{ b.status }}</span></td>
           </tr>
           {% else %}
@@ -114,8 +114,8 @@
     <div style="padding:1rem">
       {% for log in recent_logs %}
       <div style="padding:0.75rem;border-radius:8px;background:var(--surface-container-low);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.75rem">
-        <span class="material-symbols-outlined" style="font-size:18px;color:{% if log.status == 'SUCCESS' %}#16a34a{% elif log.status == 'REJECTED' %}#dc2626{% else %}#d97706{% endif %}">
-          {% if log.status == 'SUCCESS' %}check_circle{% elif log.status == 'REJECTED' %}cancel{% else %}sync{% endif %}
+        <span class="material-symbols-outlined" style="font-size:18px;color:{% if log.status == 'SUCCESS' %}#16a34a{% elif log.status == 'FAILED' %}#dc2626{% else %}#d97706{% endif %}">
+          {% if log.status == 'SUCCESS' %}check_circle{% elif log.status == 'FAILED' %}cancel{% else %}sync{% endif %}
         </span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;display:flex;justify-content:space-between">

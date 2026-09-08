@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ async def list_airplanes(request: Request, db: Session = Depends(get_db)):
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
     airplanes = db.query(Airplane).order_by(Airplane.id).all()
-    return templates.TemplateResponse("airplanes/list.html", {
+    return templates.TemplateResponse(request=request, name="airplanes/list.html", context={
         "request": request, "admin": admin, "airplanes": airplanes, "active_page": "airplanes"
     })
 
@@ -30,7 +30,7 @@ async def new_airplane_form(request: Request, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    return templates.TemplateResponse("airplanes/form.html", {
+    return templates.TemplateResponse(request=request, name="airplanes/form.html", context={
         "request": request, "admin": admin, "airplane": None, "errors": {}, "active_page": "airplanes"
     })
 
@@ -48,20 +48,17 @@ async def create_airplane(
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    code = airplane_code.strip().upper()
-    existing = db.query(Airplane).filter(Airplane.airplane_code == code).first()
+    model_num = airplane_name.strip()
+    existing = db.query(Airplane).filter(Airplane.model_number == model_num).first()
     if existing:
-        return templates.TemplateResponse("airplanes/form.html", {
-            "request": request, "admin": admin, "airplane": None, "errors": {"airplane_code": f"Aircraft code '{code}' already exists."}, "active_page": "airplanes"
+        return templates.TemplateResponse(request=request, name="airplanes/form.html", context={
+            "request": request, "admin": admin, "airplane": None, "errors": {"airplane_name": f"Aircraft model '{model_num}' already exists."}, "active_page": "airplanes"
         }, status_code=400)
     col_list = [c.strip().upper() for c in cols.split(",") if c.strip()]
     total_seats = rows * len(col_list)
     ap = Airplane(
-        airplane_code=code,
-        airplane_name=airplane_name.strip(),
-        airplane_type=airplane_type.strip(),
-        total_seats=total_seats,
-        status=status
+        model_number=model_num,
+        total_seats=total_seats
     )
     db.add(ap)
     db.flush()
@@ -73,7 +70,7 @@ async def create_airplane(
             seat = Seat(
                 airplane_id=ap.id,
                 seat_number=f"{r}{c}",
-                seat_type=stype,
+                seat_class=stype,
                 seat_position=pos
             )
             db.add(seat)
@@ -89,7 +86,7 @@ async def view_airplane_seats(request: Request, airplane_id: int, db: Session = 
     if not ap:
         raise HTTPException(status_code=404, detail="Aircraft not found")
     seats = db.query(Seat).filter(Seat.airplane_id == airplane_id).order_by(Seat.id).all()
-    return templates.TemplateResponse("airplanes/seats.html", {
+    return templates.TemplateResponse(request=request, name="airplanes/seats.html", context={
         "request": request, "admin": admin, "airplane": ap, "seats": seats, "active_page": "airplanes"
     })
 

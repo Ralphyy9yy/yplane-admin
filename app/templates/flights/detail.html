@@ -6,7 +6,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Flight {{ flight.flight_number }}</h1>
-    <p class="page-subtitle">{{ flight.route.origin_airport.airport_name }} ({{ flight.route.origin_airport.airport_code }}) → {{ flight.route.destination_airport.airport_name }} ({{ flight.route.destination_airport.airport_code }})</p>
+    <p class="page-subtitle">{{ flight.route.origin_airport.name }} ({{ flight.route.origin_airport.code }}) → {{ flight.route.destination_airport.name }} ({{ flight.route.destination_airport.code }})</p>
   </div>
   <div class="page-header-actions">
     <a href="/admin/flights" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
@@ -21,13 +21,13 @@
 <div class="stat-grid" style="grid-template-columns:repeat(4, 1fr);margin-bottom:1.5rem">
   <div class="stat-card">
     <div class="stat-label">Departure Date &amp; Time</div>
-    <div class="stat-value" style="font-size:18px">{{ flight.departure_date.strftime('%b %d, %Y') }}</div>
+    <div class="stat-value" style="font-size:18px">{{ flight.departure_time.strftime('%b %d, %Y') }}</div>
     <div class="stat-sub">{{ flight.departure_time.strftime('%H:%M') }} → {{ flight.arrival_time.strftime('%H:%M') }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Assigned Aircraft</div>
-    <div class="stat-value" style="font-size:18px">{{ flight.airplane.airplane_code }}</div>
-    <div class="stat-sub">{{ flight.airplane.airplane_name }}</div>
+    <div class="stat-value" style="font-size:18px">{{ flight.airplane.model_number }}</div>
+    <div class="stat-sub">{{ flight.airplane.model_number }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Available Seats</div>
@@ -36,7 +36,7 @@
   </div>
   <div class="stat-card">
     <div class="stat-label">Base Fare</div>
-    <div class="stat-value" style="color:var(--primary-container)">₱{{ '%.2f'|format(flight.fare) }}</div>
+    <div class="stat-value" style="color:var(--primary-container)">₱{{ '%.2f'|format(flight.price) }}</div>
     <div class="stat-sub">Status: {{ flight.status }}</div>
   </div>
 </div>

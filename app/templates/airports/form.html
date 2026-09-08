@@ -17,12 +17,12 @@
       <div style="display:flex;flex-direction:column;gap:1.25rem">
         <div class="form-field">
           <label class="form-label">Airport IATA Code (3 letters) *</label>
-          <input class="form-input" name="airport_code" type="text" maxlength="10" placeholder="e.g. TAG, MNL, CEB" value="{{ airport.airport_code if airport else '' }}" required style="text-transform:uppercase">
-          {% if errors.airport_code %}<div class="form-error">{{ errors.airport_code }}</div>{% endif %}
+          <input class="form-input" name="code" type="text" maxlength="10" placeholder="e.g. TAG, MNL, CEB" value="{{ airport.code if airport else '' }}" required style="text-transform:uppercase">
+          {% if errors.code %}<div class="form-error">{{ errors.code }}</div>{% endif %}
         </div>
         <div class="form-field">
           <label class="form-label">Full Airport Name *</label>
-          <input class="form-input" name="airport_name" type="text" placeholder="e.g. Panglao–Bohol International Airport" value="{{ airport.airport_name if airport else '' }}" required>
+          <input class="form-input" name="name" type="text" placeholder="e.g. Panglao–Bohol International Airport" value="{{ airport.name if airport else '' }}" required>
         </div>
         <div class="form-row">
           <div class="form-field">

@@ -38,7 +38,6 @@ def _seed_admin():
             admin = User(
                 name="YPlane Administrator",
                 email=settings.ADMIN_EMAIL,
-                password=hashed,
                 password_hash=hashed,
                 role="ADMIN",
                 is_active=True,
@@ -48,7 +47,6 @@ def _seed_admin():
             print(f"[SEED] YPlane Admin created: {settings.ADMIN_EMAIL}")
         else:
             admin.role = "ADMIN"
-            admin.password = hashed
             admin.password_hash = hashed
             db.commit()
     finally:

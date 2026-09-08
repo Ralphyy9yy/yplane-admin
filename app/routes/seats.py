@@ -35,7 +35,7 @@ async def all_seats(request: Request, schedule_id: int | None = None, db: Sessio
     if schedule_id:
         query = query.filter(Seat.schedule_id == schedule_id)
     seats = query.order_by(Seat.schedule_id, Seat.seat_number).all()
-    return templates.TemplateResponse("seats/all.html", {
+    return templates.TemplateResponse(request=request, name="seats/all.html", context={
         "request": request, "admin": admin, "schedules": schedules, "seats": seats,
         "schedule_id": schedule_id, "active_page": "seats",
     })
@@ -50,9 +50,7 @@ async def list_seats(request: Request, schedule_id: int, db: Session = Depends(g
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     seats = db.query(Seat).filter(Seat.schedule_id == schedule_id).order_by(Seat.seat_number).all()
-    return templates.TemplateResponse(
-        "seats/list.html",
-        {"request": request, "admin": admin, "schedule": schedule, "seats": seats, "statuses": SeatStatus, "active_page": "schedules", "error": None},
+    return templates.TemplateResponse(request=request, name="seats/list.html", context={"request": request, "admin": admin, "schedule": schedule, "seats": seats, "statuses": SeatStatus, "active_page": "schedules", "error": None},
     )
 
 
@@ -81,9 +79,7 @@ async def add_seat(
     except IntegrityError:
         db.rollback()
         seats = db.query(Seat).filter(Seat.schedule_id == schedule_id).order_by(Seat.seat_number).all()
-        return templates.TemplateResponse(
-            "seats/list.html",
-            {"request": request, "admin": admin, "schedule": schedule, "seats": seats, "statuses": SeatStatus, "active_page": "schedules", "error": f"Seat '{seat_number}' already exists for this schedule."},
+        return templates.TemplateResponse(request=request, name="seats/list.html", context={"request": request, "admin": admin, "schedule": schedule, "seats": seats, "statuses": SeatStatus, "active_page": "schedules", "error": f"Seat '{seat_number}' already exists for this schedule."},
             status_code=400,
         )
 

@@ -6,7 +6,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Booking {{ booking.booking_reference }}</h1>
-    <p class="page-subtitle">Submitted on {{ booking.booked_at.strftime('%B %d, %Y at %H:%M:%S') }}</p>
+    <p class="page-subtitle">Submitted on {{ booking.created_at.strftime('%B %d, %Y at %H:%M:%S') }}</p>
   </div>
   <div class="page-header-actions">
     <a href="/admin/bookings" class="btn-secondary"><span class="material-symbols-outlined">arrow_back</span>Back</a>
@@ -38,15 +38,15 @@
         <div class="detail-value">{{ booking.user.email if booking.user else '-' }}</div>
 
         <div class="detail-label">Flight</div>
-        <div class="detail-value"><strong>{{ booking.flight.flight_number }}</strong> ({{ booking.flight.route.origin_airport.airport_code }} → {{ booking.flight.route.destination_airport.airport_code }})</div>
+        <div class="detail-value"><strong>{{ booking.flight.flight_number }}</strong> ({{ booking.flight.route.origin_airport.code }} → {{ booking.flight.route.destination_airport.code }})</div>
 
         <div class="detail-label">Departure</div>
-        <div class="detail-value">{{ booking.flight.departure_date.strftime('%b %d, %Y') }} at {{ booking.flight.departure_time.strftime('%H:%M') }}</div>
+        <div class="detail-value">{{ booking.flight.departure_time.strftime('%b %d, %Y') }} at {{ booking.flight.departure_time.strftime('%H:%M') }}</div>
 
         <div class="detail-label">Reserved Seat(s)</div>
         <div class="detail-value" style="font-family:monospace;font-weight:700;color:var(--primary-container)">
           {% for bs in booking.booking_seats %}
-            {{ bs.seat.seat_number }} ({{ bs.seat.seat_type }})
+            {{ bs.seat.seat_number }} ({{ bs.seat.seat_class }})
           {% else %}
             No seat assigned
           {% endfor %}
@@ -70,7 +70,7 @@
         <div class="detail-value">{{ booking.payment.payment_method }}</div>
 
         <div class="detail-label">Payment Status</div>
-        <div class="detail-value"><span class="badge badge-{{ booking.payment.status.lower() }}">{{ booking.payment.status }}</span></div>
+        <div class="detail-value"><span class="badge badge-{{ booking.payment.payment_status.lower() }}">{{ booking.payment.payment_status }}</span></div>
 
         <div class="detail-label">Timestamp</div>
         <div class="detail-value" style="font-size:12px;font-family:monospace">{{ booking.payment.paid_at.strftime('%Y-%m-%d %H:%M:%S') if booking.payment.paid_at else '-' }}</div>

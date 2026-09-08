@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from app.models import Flight, Seat, Booking, BookingSeat, Payment, User
@@ -42,7 +42,7 @@ def get_flight_seat_availability(db: Session, flight_id: int) -> List[Dict[str, 
         result.append({
             "seat_id": seat.id,
             "seat_number": seat.seat_number,
-            "seat_type": seat.seat_type,
+            "seat_class": seat.seat_class,
             "seat_position": seat.seat_position,
             "status": "booked" if is_booked else "available",
             "is_available": not is_booked,
@@ -50,11 +50,13 @@ def get_flight_seat_availability(db: Session, flight_id: int) -> List[Dict[str, 
     return result
 
 
-def submit_booking_request(user_id: int, flight_id: int, seat_id: int, fare: Optional[Decimal] = None) -> None:
+import uuid
+
+def submit_booking_request(user_id: uuid.UUID, flight_id: int, seat_id: int, fare: Optional[Decimal] = None) -> None:
     """Enqueues a booking request into the sequential processing pipeline."""
     queue_service.enqueue_booking(user_id, flight_id, seat_id, fare)
 
 
-def cancel_booking_request(booking_id: int, admin_id: Optional[int] = None) -> Dict[str, Any]:
+def cancel_booking_request(booking_id: int, admin_id: Optional[str] = None) -> Dict[str, Any]:
     """Cancels a confirmed booking and frees the seat."""
     return queue_service.cancel_booking(booking_id, admin_id)
