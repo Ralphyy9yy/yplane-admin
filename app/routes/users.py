@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -27,7 +28,7 @@ async def list_users(request: Request, search: str = "", page: int = 1, db: Sess
     cache_key = f"users_list_{page}_{search}"
     cached = cache_get(cache_key)
     if cached is not None:
-        return templates.TemplateResponse("users/list.html", {
+        return templates.TemplateResponse(request=request, name="users/list.html", context={
             "request": request, "admin": admin,
             "users": cached["users"], "pagination": cached["paginated"],
             "search": search, "active_page": "users"
@@ -42,12 +43,12 @@ async def list_users(request: Request, search: str = "", page: int = 1, db: Sess
     query = query.order_by(User.id.desc())
     paginated = paginate_query(query, page=page, page_size=15)
     cache_set(cache_key, {"users": paginated["items"], "paginated": paginated}, ttl=10)
-    return templates.TemplateResponse("users/list.html", {
+    return templates.TemplateResponse(request=request, name="users/list.html", context={
         "request": request, "admin": admin, "users": paginated["items"], "pagination": paginated, "search": search, "active_page": "users"
     })
 
 @router.get("/users/{user_id}", response_class=HTMLResponse)
-async def user_detail(request: Request, user_id: int, db: Session = Depends(get_db)):
+async def user_detail(request: Request, user_id: uuid.UUID, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse("/auth/login", status_code=302)
@@ -92,7 +93,7 @@ async def user_detail(request: Request, user_id: int, db: Session = Depends(get_
         "queue_attempts": queue_attempts,
     }
 
-    return templates.TemplateResponse("users/detail.html", {
+    return templates.TemplateResponse(request=request, name="users/detail.html", context={
         "request": request,
         "admin": admin,
         "user": user,
@@ -102,7 +103,7 @@ async def user_detail(request: Request, user_id: int, db: Session = Depends(get_
     })
 
 @router.post("/users/{user_id}/toggle")
-async def toggle_user(request: Request, user_id: int, db: Session = Depends(get_db)):
+async def toggle_user(request: Request, user_id: uuid.UUID, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse("/auth/login", status_code=302)

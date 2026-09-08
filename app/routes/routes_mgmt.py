@@ -26,7 +26,7 @@ async def list_routes(request: Request, page: int = 1, db: Session = Depends(get
         return RedirectResponse(url="/auth/login", status_code=302)
     query = db.query(Route).order_by(Route.id.asc())
     paginated = paginate_query(query, page=page, page_size=10)
-    return templates.TemplateResponse("routes/list.html", {
+    return templates.TemplateResponse(request=request, name="routes/list.html", context={
         "request": request, "admin": admin, "routes": paginated["items"], "pagination": paginated, "active_page": "routes"
     })
 
@@ -35,8 +35,8 @@ async def new_route_form(request: Request, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    airports = db.query(Airport).order_by(Airport.airport_code).all()
-    return templates.TemplateResponse("routes/form.html", {
+    airports = db.query(Airport).order_by(Airport.code).all()
+    return templates.TemplateResponse(request=request, name="routes/form.html", context={
         "request": request, "admin": admin, "route": None, "airports": airports, "errors": {}, "active_page": "routes"
     })
 
@@ -54,16 +54,16 @@ async def create_route(
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
     if origin_airport_id == destination_airport_id:
-        airports = db.query(Airport).order_by(Airport.airport_code).all()
-        return templates.TemplateResponse("routes/form.html", {
+        airports = db.query(Airport).order_by(Airport.code).all()
+        return templates.TemplateResponse(request=request, name="routes/form.html", context={
             "request": request, "admin": admin, "route": None, "airports": airports, "errors": {"origin_airport_id": "Origin and destination cannot be the same."}, "active_page": "routes"
         }, status_code=400)
-    dur = dt_time(duration_hours, duration_minutes)
+    dur_mins = duration_hours * 60 + duration_minutes
     r = Route(
         origin_airport_id=origin_airport_id,
         destination_airport_id=destination_airport_id,
-        distance=Decimal(str(distance)),
-        estimated_duration=dur
+        distance_km=Decimal(str(distance)),
+        estimated_duration_minutes=dur_mins
     )
     db.add(r)
     db.commit()

@@ -24,10 +24,10 @@ async def list_airports(request: Request, search: str = "", page: int = 1, db: S
         return RedirectResponse(url="/auth/login", status_code=302)
     query = db.query(Airport)
     if search:
-        query = query.filter((Airport.airport_code.ilike(f"%{search}%")) | (Airport.city.ilike(f"%{search}%")) | (Airport.airport_name.ilike(f"%{search}%")))
-    query = query.order_by(Airport.airport_code)
+        query = query.filter((Airport.code.ilike(f"%{search}%")) | (Airport.city.ilike(f"%{search}%")) | (Airport.name.ilike(f"%{search}%")))
+    query = query.order_by(Airport.code)
     paginated = paginate_query(query, page=page, page_size=10)
-    return templates.TemplateResponse("airports/list.html", {
+    return templates.TemplateResponse(request=request, name="airports/list.html", context={
         "request": request, "admin": admin, "airports": paginated["items"], "pagination": paginated, "search": search, "active_page": "airports"
     })
 
@@ -36,7 +36,7 @@ async def new_airport_form(request: Request, db: Session = Depends(get_db)):
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    return templates.TemplateResponse("airports/form.html", {
+    return templates.TemplateResponse(request=request, name="airports/form.html", context={
         "request": request, "admin": admin, "airport": None, "errors": {}, "active_page": "airports"
     })
 
@@ -52,13 +52,13 @@ async def create_airport(
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    code = airport_code.strip().upper()
-    existing = db.query(Airport).filter(Airport.airport_code == code).first()
+    code_upper = airport_code.strip().upper()
+    existing = db.query(Airport).filter(Airport.code == code_upper).first()
     if existing:
-        return templates.TemplateResponse("airports/form.html", {
-            "request": request, "admin": admin, "airport": None, "errors": {"airport_code": f"Airport code '{code}' already exists."}, "active_page": "airports"
+        return templates.TemplateResponse(request=request, name="airports/form.html", context={
+            "request": request, "admin": admin, "airport": None, "errors": {"airport_code": f"Airport code '{code_upper}' already exists."}, "active_page": "airports"
         }, status_code=400)
-    airport = Airport(airport_code=code, airport_name=airport_name.strip(), city=city.strip(), country=country.strip())
+    airport = Airport(code=code_upper, name=airport_name.strip(), city=city.strip(), country=country.strip())
     db.add(airport)
     db.commit()
     return RedirectResponse(url="/admin/airports", status_code=303)
@@ -71,7 +71,7 @@ async def edit_airport_form(request: Request, airport_id: int, db: Session = Dep
     airport = db.query(Airport).filter(Airport.id == airport_id).first()
     if not airport:
         raise HTTPException(status_code=404, detail="Airport not found")
-    return templates.TemplateResponse("airports/form.html", {
+    return templates.TemplateResponse(request=request, name="airports/form.html", context={
         "request": request, "admin": admin, "airport": airport, "errors": {}, "active_page": "airports"
     })
 
@@ -91,8 +91,8 @@ async def update_airport(
     airport = db.query(Airport).filter(Airport.id == airport_id).first()
     if not airport:
         raise HTTPException(status_code=404, detail="Airport not found")
-    airport.airport_code = airport_code.strip().upper()
-    airport.airport_name = airport_name.strip()
+    airport.code = airport_code.strip().upper()
+    airport.name = airport_name.strip()
     airport.city = city.strip()
     airport.country = country.strip()
     db.commit()

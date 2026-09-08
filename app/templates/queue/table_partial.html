@@ -22,7 +22,7 @@
   </td>
   <td>
     <span class="badge badge-{{ log.status.lower() }}">
-      <span class="material-symbols-outlined">{{ 'check_circle' if log.status == 'SUCCESS' else ('cancel' if log.status == 'REJECTED' else 'error') }}</span>
+      <span class="material-symbols-outlined">{{ 'check_circle' if log.status == 'SUCCESS' else ('cancel' if log.status == 'FAILED' else 'error') }}</span>
       {{ log.status }}
     </span>
   </td>

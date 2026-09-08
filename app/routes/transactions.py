@@ -35,7 +35,5 @@ async def list_transactions(
             (User.email.ilike(f"%{search}%"))
         )
     transactions = query.order_by(Transaction.created_at.desc()).limit(100).all()
-    return templates.TemplateResponse(
-        "transactions/list.html",
-        {"request": request, "admin": admin, "transactions": transactions, "search": search, "active_page": "transactions"},
+    return templates.TemplateResponse(request=request, name="transactions/list.html", context={"request": request, "admin": admin, "transactions": transactions, "search": search, "active_page": "transactions"},
     )

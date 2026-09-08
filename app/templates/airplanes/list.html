@@ -18,30 +18,18 @@
         <tr>
           <th>Tail / Code</th>
           <th>Aircraft Model</th>
-          <th>Type</th>
           <th>Total Physical Seats</th>
-          <th>Status</th>
           <th style="text-align:right">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for ap in airplanes %}
         <tr>
-          <td><strong style="font-size:14px;color:var(--primary-container)">{{ ap.airplane_code }}</strong></td>
-          <td><strong>{{ ap.airplane_name }}</strong></td>
-          <td>{{ ap.airplane_type }}</td>
+          <td><strong style="font-size:14px;color:var(--primary-container)">{{ ap.model_number }}</strong></td>
+          <td><strong>{{ ap.model_number }}</strong></td>
           <td>
             <span style="font-weight:600">{{ ap.total_seats }} seats</span>
             <span style="font-size:11px;color:var(--secondary)">({{ ap.seats|length }} registered)</span>
-          </td>
-          <td>
-            {% if ap.status == 'ACTIVE' %}
-            <span class="badge badge-confirmed">ACTIVE</span>
-            {% elif ap.status == 'MAINTENANCE' %}
-            <span class="badge badge-pending">MAINTENANCE</span>
-            {% else %}
-            <span class="badge badge-rejected">INACTIVE</span>
-            {% endif %}
           </td>
           <td style="text-align:right">
             <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem">
@@ -49,7 +37,7 @@
                 <span class="material-symbols-outlined" style="font-size:14px">event_seat</span> Seat Layout
               </a>
               <form id="del-plane-{{ ap.id }}" method="post" action="/admin/airplanes/{{ ap.id }}/delete" style="display:inline">
-                <button type="button" class="btn-icon danger" onclick="confirmDelete('del-plane-{{ ap.id }}', 'Delete aircraft {{ ap.airplane_code }}?')"><span class="material-symbols-outlined">delete</span></button>
+                <button type="button" class="btn-icon danger" onclick="confirmDelete('del-plane-{{ ap.id }}', 'Delete aircraft {{ ap.model_number }}?')"><span class="material-symbols-outlined">delete</span></button>
               </form>
             </div>
           </td>

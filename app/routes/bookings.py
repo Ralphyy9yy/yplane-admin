@@ -34,7 +34,7 @@ async def list_bookings(
     cache_key = f"bookings_list_{page}_{search}_{status_filter}"
     cached = cache_get(cache_key)
     if cached is not None:
-        return templates.TemplateResponse("bookings/list.html", {
+        return templates.TemplateResponse(request=request, name="bookings/list.html", context={
             "request": request, "admin": admin,
             "bookings": cached["bookings"],
             "pagination": cached["paginated"],
@@ -63,12 +63,12 @@ async def list_bookings(
     if status_filter:
         query = query.filter(Booking.status == status_filter.upper())
 
-    query = query.order_by(Booking.booked_at.desc())
+    query = query.order_by(Booking.created_at.desc())
     paginated = paginate_query(query, page=page, page_size=15)
 
     statuses = ["CONFIRMED", "PENDING", "CANCELLED", "REJECTED"]
     cache_set(cache_key, {"bookings": paginated["items"], "paginated": paginated}, ttl=5)
-    return templates.TemplateResponse("bookings/list.html", {
+    return templates.TemplateResponse(request=request, name="bookings/list.html", context={
         "request": request,
         "admin": admin,
         "bookings": paginated["items"],
@@ -87,7 +87,7 @@ async def booking_detail(request: Request, booking_id: int, db: Session = Depend
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    return templates.TemplateResponse("bookings/detail.html", {
+    return templates.TemplateResponse(request=request, name="bookings/detail.html", context={
         "request": request,
         "admin": admin,
         "booking": booking,
@@ -99,7 +99,7 @@ async def cancel_booking(request: Request, booking_id: int, db: Session = Depend
     admin = require_admin(request)
     if not admin:
         return RedirectResponse(url="/auth/login", status_code=302)
-    res = cancel_booking_request(booking_id, admin_id=int(admin["sub"]))
+    res = cancel_booking_request(booking_id, admin_id=admin["sub"])
     if not res["success"]:
         raise HTTPException(status_code=400, detail=res["error"])
     return RedirectResponse(url=f"/admin/bookings/{booking_id}", status_code=303)

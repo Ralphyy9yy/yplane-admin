@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 from datetime import datetime, date, time as dt_time, timedelta
 from decimal import Decimal
@@ -10,6 +10,7 @@ from app.models import (
     User, Airplane, Airport, Route, Flight, Seat,
     Booking, BookingSeat, Payment, BookingLog, SystemLog
 )
+import uuid
 
 def init_db():
     print("Creating all tables in PostgreSQL...")
@@ -18,45 +19,41 @@ def init_db():
 
     db = SessionLocal()
     try:
+        def seed_user(email: str, name: str, role: str, password: str):
+            existing = db.query(User).filter(User.email == email).first()
+            hashed = get_password_hash(password)
+            if not existing:
+                user_id = uuid.uuid4()
+                # Insert into auth.users which triggers insert into public.users
+                db.execute(text("""
+                    INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token)
+                    VALUES ('00000000-0000-0000-0000-000000000000', :id, 'authenticated', 'authenticated', :email, '', now(), :meta, now(), now(), '', '', '', '')
+                    ON CONFLICT (id) DO NOTHING
+                """), {"id": user_id, "email": email, "meta": f'{{"name": "{name}"}}'})
+                db.flush()
+                # The trigger might take a split second or be part of the same transaction
+                existing = db.query(User).filter(User.id == user_id).first()
+                # If trigger failed or we need to insert manually:
+                if not existing:
+                    db.execute(text("INSERT INTO public.users (id, name, email, role, password_hash, is_active) VALUES (:id, :name, :email, :role, :phash, true)"),
+                               {"id": user_id, "name": name, "email": email, "role": role, "phash": hashed})
+                    existing = db.query(User).filter(User.id == user_id).first()
+                print(f"Seeded User: {email} ({role})")
+            
+            if existing:
+                existing.password_hash = hashed
+                existing.role = role
+                existing.is_active = True
+
         # 1. Seed Admin & Demo Users
         admin_emails = [settings.ADMIN_EMAIL, "admin@yplane.com"]
         for email in admin_emails:
-            existing = db.query(User).filter(User.email == email).first()
-            hashed = get_password_hash(settings.ADMIN_PASSWORD)
-            if not existing:
-                admin = User(
-                    name="YPlane Administrator",
-                    email=email,
-                    password=hashed,
-                    password_hash=hashed,
-                    role="ADMIN",
-                    is_active=True
-                )
-                db.add(admin)
-                print(f"Seeded Admin: {email}")
-            else:
-                existing.password = hashed
-                existing.password_hash = hashed
-                existing.role = "ADMIN"
+            seed_user(email, "YPlane Administrator", "ADMIN", settings.ADMIN_PASSWORD)
 
         # Seed 5 Demo Customers
         for i in range(1, 6):
-            c_email = f"customer{i}@yplane.com"
-            existing = db.query(User).filter(User.email == c_email).first()
-            c_hashed = get_password_hash("password123")
-            if not existing:
-                customer = User(
-                    name=f"Passenger {i}",
-                    email=c_email,
-                    password=c_hashed,
-                    password_hash=c_hashed,
-                    role="CUSTOMER",
-                    is_active=True
-                )
-                db.add(customer)
-            else:
-                existing.password = c_hashed
-                existing.password_hash = c_hashed
+            seed_user(f"customer{i}@yplane.com", f"Passenger {i}", "CUSTOMER", "password123")
+            
         db.commit()
 
         # 2. Seed Airports (Panglao Hub + Destinations)
@@ -70,17 +67,17 @@ def init_db():
         ]
         airport_map = {}
         for a_data in airports_data:
-            airport = db.query(Airport).filter(Airport.airport_code == a_data["code"]).first()
+            airport = db.query(Airport).filter(Airport.code == a_data["code"]).first()
             if not airport:
                 airport = Airport(
-                    airport_code=a_data["code"],
-                    airport_name=a_data["name"],
+                    code=a_data["code"],
+                    name=a_data["name"],
                     city=a_data["city"],
                     country=a_data["country"]
                 )
                 db.add(airport)
                 db.flush()
-                print(f"Seeded Airport: {airport.airport_code} - {airport.city}")
+                print(f"Seeded Airport: {airport.code} - {airport.city}")
             airport_map[a_data["code"]] = airport
         db.commit()
 
@@ -92,23 +89,20 @@ def init_db():
         ]
         airplane_map = {}
         for ap_data in airplanes_data:
-            airplane = db.query(Airplane).filter(Airplane.airplane_code == ap_data["code"]).first()
+            airplane = db.query(Airplane).filter(Airplane.model_number == ap_data["name"]).first()
             total_seats = ap_data["rows"] * len(ap_data["cols"])
             if not airplane:
                 airplane = Airplane(
-                    airplane_code=ap_data["code"],
-                    airplane_name=ap_data["name"],
-                    airplane_type=ap_data["type"],
-                    total_seats=total_seats,
-                    status="ACTIVE"
+                    model_number=ap_data["name"],
+                    total_seats=total_seats
                 )
                 db.add(airplane)
                 db.flush()
-                print(f"Seeded Airplane: {airplane.airplane_code} ({airplane.airplane_name}) with {total_seats} seats")
+                print(f"Seeded Airplane: {airplane.model_number} with {total_seats} seats")
 
                 # Generate seats
                 for row in range(1, ap_data["rows"] + 1):
-                    seat_type = "BUSINESS" if row <= 2 else ("PREMIUM" if row <= 5 else "ECONOMY")
+                    seat_type = "BUSINESS" if row <= 2 else ("PREMIUM_ECONOMY" if row <= 5 else "ECONOMY")
                     for col in ap_data["cols"]:
                         seat_num = f"{row}{col}"
                         if len(ap_data["cols"]) == 6:
@@ -118,7 +112,7 @@ def init_db():
                         seat = Seat(
                             airplane_id=airplane.id,
                             seat_number=seat_num,
-                            seat_type=seat_type,
+                            seat_class=seat_type,
                             seat_position=pos
                         )
                         db.add(seat)
@@ -140,7 +134,7 @@ def init_db():
             # Outbound: TAG -> Dest
             r_out = db.query(Route).filter(Route.origin_airport_id == tag_id, Route.destination_airport_id == dest_id).first()
             if not r_out:
-                r_out = Route(origin_airport_id=tag_id, destination_airport_id=dest_id, distance=r_info["dist"], estimated_duration=r_info["duration"])
+                r_out = Route(origin_airport_id=tag_id, destination_airport_id=dest_id, distance_km=r_info["dist"], estimated_duration_minutes=r_info["duration"].hour * 60 + r_info["duration"].minute)
                 db.add(r_out)
                 db.flush()
                 print(f"Seeded Route: TAG -> {r_info['dest']}")
@@ -149,7 +143,7 @@ def init_db():
             # Inbound: Dest -> TAG
             r_in = db.query(Route).filter(Route.origin_airport_id == dest_id, Route.destination_airport_id == tag_id).first()
             if not r_in:
-                r_in = Route(origin_airport_id=dest_id, destination_airport_id=tag_id, distance=r_info["dist"], estimated_duration=r_info["duration"])
+                r_in = Route(origin_airport_id=dest_id, destination_airport_id=tag_id, distance_km=r_info["dist"], estimated_duration_minutes=r_info["duration"].hour * 60 + r_info["duration"].minute)
                 db.add(r_in)
                 db.flush()
                 print(f"Seeded Route: {r_info['dest']} -> TAG")
@@ -157,28 +151,29 @@ def init_db():
         db.commit()
 
         # 5. Seed Scheduled Flights for Today & Next Days
-        today = date.today()
+        today = datetime.utcnow()
         flights_config = [
-            {"fn": "YP-101", "route": "TAG-MNL", "plane": "RP-C8810", "dep": dt_time(8, 0), "arr": dt_time(9, 25), "fare": Decimal("3450.00")},
-            {"fn": "YP-102", "route": "MNL-TAG", "plane": "RP-C8810", "dep": dt_time(10, 30), "arr": dt_time(11, 55), "fare": Decimal("3450.00")},
-            {"fn": "YP-201", "route": "TAG-DVO", "plane": "RP-C3230", "dep": dt_time(12, 15), "arr": dt_time(13, 20), "fare": Decimal("2890.00")},
-            {"fn": "YP-301", "route": "TAG-ILO", "plane": "RP-C5521", "dep": dt_time(14, 0), "arr": dt_time(14, 50), "fare": Decimal("2150.00")},
-            {"fn": "YP-401", "route": "TAG-ENI", "plane": "RP-C3230", "dep": dt_time(15, 30), "arr": dt_time(17, 0), "fare": Decimal("4200.00")},
-            {"fn": "YP-501", "route": "TAG-CRK", "plane": "RP-C8810", "dep": dt_time(18, 0), "arr": dt_time(19, 35), "fare": Decimal("3100.00")},
+            {"fn": "YP-101", "route": "TAG-MNL", "plane": "RP-C8810", "dep": today + timedelta(hours=1), "arr": today + timedelta(hours=2, minutes=25), "fare": Decimal("3450.00")},
+            {"fn": "YP-102", "route": "MNL-TAG", "plane": "RP-C8810", "dep": today + timedelta(hours=3), "arr": today + timedelta(hours=4, minutes=25), "fare": Decimal("3450.00")},
+            {"fn": "YP-201", "route": "TAG-DVO", "plane": "RP-C3230", "dep": today + timedelta(hours=5), "arr": today + timedelta(hours=6, minutes=5), "fare": Decimal("2890.00")},
+            {"fn": "YP-301", "route": "TAG-ILO", "plane": "RP-C5521", "dep": today + timedelta(hours=7), "arr": today + timedelta(hours=7, minutes=50), "fare": Decimal("2150.00")},
+            {"fn": "YP-401", "route": "TAG-ENI", "plane": "RP-C3230", "dep": today + timedelta(hours=9), "arr": today + timedelta(hours=10, minutes=30), "fare": Decimal("4200.00")},
+            {"fn": "YP-501", "route": "TAG-CRK", "plane": "RP-C8810", "dep": today + timedelta(hours=11), "arr": today + timedelta(hours=12, minutes=35), "fare": Decimal("3100.00")},
             # Dedicated Live Demo Flight:
-            {"fn": "YP-DEMO", "route": "TAG-MNL", "plane": "RP-C3230", "dep": dt_time(9, 0), "arr": dt_time(10, 25), "fare": Decimal("2999.00")},
+            {"fn": "YP-DEMO", "route": "TAG-MNL", "plane": "RP-C3230", "dep": today + timedelta(hours=24), "arr": today + timedelta(hours=25, minutes=25), "fare": Decimal("2999.00")},
         ]
         for f_info in flights_config:
             flight = db.query(Flight).filter(Flight.flight_number == f_info["fn"]).first()
             if not flight:
+                airplane = airplane_map[f_info["plane"]]
                 flight = Flight(
                     flight_number=f_info["fn"],
                     route_id=route_map[f_info["route"]].id,
-                    airplane_id=airplane_map[f_info["plane"]].id,
-                    departure_date=today,
+                    airplane_id=airplane.id,
                     departure_time=f_info["dep"],
                     arrival_time=f_info["arr"],
-                    fare=f_info["fare"],
+                    price=f_info["fare"],
+                    available_seats=airplane.total_seats,
                     status="SCHEDULED"
                 )
                 db.add(flight)

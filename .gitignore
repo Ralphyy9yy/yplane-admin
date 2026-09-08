@@ -45,3 +45,5 @@ staticfiles/
 # Uvicorn / gunicorn
 *.pid
 
+
+.tmp_stitch_reference/*

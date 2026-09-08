@@ -47,18 +47,18 @@
             </a>
           </td>
           <td>
-            <strong>{{ f.route.origin_airport.airport_code }} → {{ f.route.destination_airport.airport_code }}</strong><br>
+            <strong>{{ f.route.origin_airport.code }} → {{ f.route.destination_airport.code }}</strong><br>
             <span class="form-help">{{ f.route.origin_airport.city }} to {{ f.route.destination_airport.city }}</span>
           </td>
           <td>
-            <strong>{{ f.airplane.airplane_code }}</strong><br>
-            <span class="form-help">{{ f.airplane.airplane_name }}</span>
+            <strong>{{ f.airplane.model_number }}</strong><br>
+            <span class="form-help">{{ f.airplane.model_number }}</span>
           </td>
-          <td>{{ f.departure_date.strftime('%b %d, %Y') }}</td>
+          <td>{{ f.departure_time.strftime('%b %d, %Y') }}</td>
           <td>
             <strong>{{ f.departure_time.strftime('%H:%M') }}</strong> - {{ f.arrival_time.strftime('%H:%M') }}
           </td>
-          <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(f.fare) }}</strong></td>
+          <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(f.price) }}</strong></td>
           <td>
             <span style="font-weight:600;color:{% if item.available_seats == 0 %}#dc2626{% elif item.available_seats <= 5 %}#d97706{% else %}#16a34a{% endif %}">
               {{ item.available_seats }}

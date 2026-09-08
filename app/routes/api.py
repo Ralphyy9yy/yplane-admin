@@ -35,10 +35,8 @@ def mobile_login(body: LoginPayload, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email.ilike(clean_email)).first()
 
     pwd_valid = False
-    if user:
-        if user.password and (verify_password(body.password, user.password) or body.password == user.password):
-            pwd_valid = True
-        elif user.password_hash and verify_password(body.password, user.password_hash):
+    if user and user.password_hash:
+        if verify_password(body.password, user.password_hash):
             pwd_valid = True
 
     if not user or not pwd_valid:
@@ -70,7 +68,6 @@ def mobile_register(body: RegisterPayload, db: Session = Depends(get_db)):
     user = User(
         name=body.name.strip(),
         email=clean_email,
-        password=hashed,
         password_hash=hashed,
         role="CUSTOMER",
         is_active=True
@@ -102,21 +99,21 @@ def get_flights(db: Session = Depends(get_db)):
             joinedload(Flight.route).joinedload(Route.origin_airport),
             joinedload(Flight.route).joinedload(Route.destination_airport)
         )
-        .order_by(Flight.departure_date.asc(), Flight.departure_time.asc())
+        .order_by(Flight.departure_time.asc())
         .all()
     )
     return [
         {
             "id": f.id,
             "flight_number": f.flight_number,
-            "origin": f.route.origin_airport.airport_code if f.route and f.route.origin_airport else "",
+            "origin": f.route.origin_airport.code if f.route and f.route.origin_airport else "",
             "origin_city": f.route.origin_airport.city if f.route and f.route.origin_airport else "",
-            "destination": f.route.destination_airport.airport_code if f.route and f.route.destination_airport else "",
+            "destination": f.route.destination_airport.code if f.route and f.route.destination_airport else "",
             "destination_city": f.route.destination_airport.city if f.route and f.route.destination_airport else "",
-            "date": str(f.departure_date),
+            "date": str(f.departure_time.date()) if f.departure_time else "",
             "departure": str(f.departure_time),
             "arrival": str(f.arrival_time),
-            "fare": float(f.fare),
+            "fare": float(f.price),
             "status": f.status
         }
         for f in flights
@@ -144,7 +141,7 @@ def create_booking(body: BookingRequestPayload, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Seat does not belong to this flight's airplane")
 
     # Enqueue into single-worker sequential pipeline
-    submit_booking_request(user.id, flight.id, seat.id, flight.fare)
+    submit_booking_request(user.id, flight.id, seat.id, flight.price)
     return {
         "status": "QUEUED",
         "message": "Booking request placed into sequential processing queue",
@@ -163,7 +160,7 @@ def get_user_bookings(user_id: int, db: Session = Depends(get_db)):
             joinedload(Booking.booking_seats).joinedload(BookingSeat.seat)
         )
         .filter(Booking.user_id == user_id)
-        .order_by(Booking.booked_at.desc())
+        .order_by(Booking.created_at.desc())
         .all()
     )
     result = []
@@ -173,13 +170,13 @@ def get_user_bookings(user_id: int, db: Session = Depends(get_db)):
             "id": b.id,
             "booking_reference": b.booking_reference,
             "flight_number": b.flight.flight_number if b.flight else "",
-            "origin": b.flight.route.origin_airport.airport_code if b.flight and b.flight.route else "",
-            "destination": b.flight.route.destination_airport.airport_code if b.flight and b.flight.route else "",
-            "departure_date": str(b.flight.departure_date) if b.flight else "",
+            "origin": b.flight.route.origin_airport.code if b.flight and b.flight.route else "",
+            "destination": b.flight.route.destination_airport.code if b.flight and b.flight.route else "",
+            "departure_date": str(b.flight.departure_time.date()) if b.flight and b.flight.departure_time else "",
             "seats": seats,
             "total_amount": float(b.total_amount),
             "status": b.status,
-            "booked_at": str(b.booked_at)
+            "created_at": str(b.created_at)
         })
     return result
 

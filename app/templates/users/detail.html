@@ -164,9 +164,9 @@
               <td><strong>{{ b.flight.flight_number if b.flight else '-' }}</strong></td>
               <td>
                 {% if b.flight and b.flight.route %}
-                <span class="badge badge-confirmed" style="font-size:10px">{{ b.flight.route.origin_airport.airport_code }}</span>
+                <span class="badge badge-confirmed" style="font-size:10px">{{ b.flight.route.origin_airport.code }}</span>
                 →
-                <span class="badge badge-customer" style="font-size:10px">{{ b.flight.route.destination_airport.airport_code }}</span>
+                <span class="badge badge-customer" style="font-size:10px">{{ b.flight.route.destination_airport.code }}</span>
                 {% else %}-{% endif %}
               </td>
               <td>
@@ -177,7 +177,7 @@
               <td><strong style="color:var(--primary-container)">₱{{ '%.2f'|format(b.total_amount) }}</strong></td>
               <td><span class="badge badge-{{ b.status.lower() }}">{{ b.status }}</span></td>
               <td style="font-size:11px;font-family:monospace;color:var(--secondary)">
-                {{ b.booked_at.strftime('%b %d, %Y %H:%M') if b.booked_at else '-' }}
+                {{ b.created_at.strftime('%b %d, %Y %H:%M') if b.created_at else '-' }}
               </td>
               <td style="text-align:right">
                 <a href="/admin/bookings/{{ b.id }}" class="btn-icon" title="View Booking"><span class="material-symbols-outlined">visibility</span></a>
@@ -229,7 +229,7 @@
               <td>
                 {% if lg.status == 'SUCCESS' %}
                 <span class="badge badge-confirmed"><span class="material-symbols-outlined" style="font-size:12px">check_circle</span>SUCCESS</span>
-                {% elif lg.status == 'REJECTED' %}
+                {% elif lg.status == 'FAILED' %}
                 <span class="badge badge-rejected"><span class="material-symbols-outlined" style="font-size:12px">cancel</span>REJECTED</span>
                 {% else %}
                 <span class="badge badge-pending">{{ lg.status }}</span>

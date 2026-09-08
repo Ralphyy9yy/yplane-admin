@@ -1,4 +1,4 @@
-﻿from datetime import timedelta
+from datetime import timedelta
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -20,7 +20,7 @@ async def login_page(request: Request):
         payload = decode_token(token)
         if payload and str(payload.get("role", "")).upper() == "ADMIN":
             return RedirectResponse("/admin/dashboard", status_code=302)
-    return templates.TemplateResponse("auth/login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request=request, name="auth/login.html", context={"error": None})
 
 
 @router.post("/login", response_class=HTMLResponse)
@@ -35,16 +35,15 @@ async def login_submit(
     user = db.query(User).filter(User.email.ilike(clean_email)).first()
     
     pwd_valid = False
-    if user:
-        if user.password and verify_password(password, user.password):
-            pwd_valid = True
-        elif user.password_hash and verify_password(password, user.password_hash):
+    if user and user.password_hash:
+        if verify_password(password, user.password_hash):
             pwd_valid = True
 
     if not user or str(user.role).upper() != "ADMIN" or not user.is_active or not pwd_valid:
         return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Invalid administrator credentials."},
+            request=request,
+            name="auth/login.html",
+            context={"error": "Invalid administrator credentials."},
             status_code=401,
         )
     lifetime = timedelta(days=30) if remember else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

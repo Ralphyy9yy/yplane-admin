@@ -1,4 +1,4 @@
-﻿import queue
+import queue
 import threading
 import logging
 import time
@@ -24,7 +24,7 @@ _worker_running: bool = False
 
 
 class BookingRequestItem:
-    def __init__(self, user_id: int, flight_id: int, seat_id: int, fare: Optional[Decimal] = None):
+    def __init__(self, user_id: uuid.UUID, flight_id: int, seat_id: int, fare: Optional[Decimal] = None):
         self.user_id = user_id
         self.flight_id = flight_id
         self.seat_id = seat_id
@@ -55,7 +55,6 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
         if not flight or not seat or not user:
             log = BookingLog(
                 user_id=req.user_id,
-                action="BOOK_SEAT",
                 processing_type="SEQUENTIAL",
                 status="FAILED",
                 message=f"Invalid flight ({req.flight_id}), seat ({req.seat_id}), or user ({req.user_id})",
@@ -66,7 +65,7 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
             db.commit()
             return {"status": "FAILED", "message": log.message}
 
-        fare = req.fare or flight.fare
+        fare = req.fare or flight.price
 
         # ATOMIC CHECK-AND-RESERVE (Row-level lock on existing bookings for this flight & seat)
         existing = (
@@ -89,9 +88,8 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
             # REJECT: Seat already booked on this flight
             log = BookingLog(
                 user_id=user.id,
-                action="BOOK_SEAT",
                 processing_type="SEQUENTIAL",
-                status="REJECTED",
+                status="FAILED",
                 message=f"Seat {seat.seat_number} already reserved on Flight {flight.flight_number}",
                 started_at=started_at,
                 completed_at=completed_at
@@ -109,7 +107,8 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
             booking_reference=ref,
             total_amount=fare,
             status="CONFIRMED",
-            booked_at=completed_at
+            created_at=completed_at,
+            requested_at=started_at
         )
         db.add(booking)
         db.flush()
@@ -125,9 +124,9 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
         payment = Payment(
             booking_id=booking.id,
             amount=fare,
-            payment_method="SIMULATED_CARD",
+            payment_method="WALLET",
             transaction_reference=generate_transaction_reference(),
-            status="PAID",
+            payment_status="COMPLETED",
             paid_at=completed_at
         )
         db.add(payment)
@@ -136,7 +135,6 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
         log = BookingLog(
             booking_id=booking.id,
             user_id=user.id,
-            action="BOOK_SEAT",
             processing_type="SEQUENTIAL",
             status="SUCCESS",
             message=f"Seat {seat.seat_number} booked successfully. Ref: {ref}",
@@ -154,7 +152,6 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
         try:
             log = BookingLog(
                 user_id=req.user_id,
-                action="BOOK_SEAT",
                 processing_type="SEQUENTIAL",
                 status="FAILED",
                 message=str(e)[:300],
@@ -170,7 +167,7 @@ def process_booking(req: BookingRequestItem) -> Dict[str, Any]:
         db.close()
 
 
-def cancel_booking(booking_id: int, admin_id: Optional[int] = None) -> Dict[str, Any]:
+def cancel_booking(booking_id: int, admin_id: Optional[str] = None) -> Dict[str, Any]:
     """Admin manual override to cancel a booking and release its seat."""
     started_at = datetime.utcnow()
     db: Session = SessionLocal()
@@ -243,7 +240,7 @@ def stop_worker():
     _worker_thread = None
 
 
-def enqueue_booking(user_id: int, flight_id: int, seat_id: int, fare: Optional[Decimal] = None) -> None:
+def enqueue_booking(user_id: uuid.UUID, flight_id: int, seat_id: int, fare: Optional[Decimal] = None) -> None:
     req = BookingRequestItem(user_id, flight_id, seat_id, fare)
     booking_queue.put(req)
     logger.info(f"Enqueued request for user {user_id}, flight {flight_id}, seat {seat_id}. Queue depth: {booking_queue.qsize()}")

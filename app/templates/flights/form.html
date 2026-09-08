@@ -40,8 +40,8 @@
               <label class="form-label">Route *</label>
               <select class="form-input" name="route_id" id="inp_route" required onchange="preview()">
                 {% for r in routes %}
-                <option value="{{ r.id }}" data-origin="{{ r.origin_airport.airport_code }}" data-dest="{{ r.destination_airport.airport_code }}" data-ocity="{{ r.origin_airport.city }}" data-dcity="{{ r.destination_airport.city }}">
-                  {{ r.origin_airport.airport_code }} ({{ r.origin_airport.city }}) → {{ r.destination_airport.airport_code }} ({{ r.destination_airport.city }})
+                <option value="{{ r.id }}" data-origin="{{ r.origin_airport.code }}" data-dest="{{ r.destination_airport.code }}" data-ocity="{{ r.origin_airport.city }}" data-dcity="{{ r.destination_airport.city }}">
+                  {{ r.origin_airport.code }} ({{ r.origin_airport.city }}) → {{ r.destination_airport.code }} ({{ r.destination_airport.city }})
                 </option>
                 {% endfor %}
               </select>
@@ -50,8 +50,8 @@
               <label class="form-label">Aircraft *</label>
               <select class="form-input" name="airplane_id" id="inp_plane" required onchange="preview()">
                 {% for ap in airplanes %}
-                <option value="{{ ap.id }}" data-seats="{{ ap.total_seats }}" data-name="{{ ap.airplane_name }}" data-code="{{ ap.airplane_code }}">
-                  {{ ap.airplane_code }} — {{ ap.airplane_name }} ({{ ap.total_seats }} seats)
+                <option value="{{ ap.id }}" data-seats="{{ ap.total_seats }}" data-name="{{ ap.model_number }}" data-code="{{ ap.model_number }}">
+                  {{ ap.model_number }} — {{ ap.model_number }} ({{ ap.total_seats }} seats)
                 </option>
                 {% endfor %}
               </select>
@@ -65,7 +65,7 @@
             </div>
             <div class="form-field">
               <label class="form-label">Ticket Fare (₱) *</label>
-              <input class="form-input" name="fare" id="inp_fare" type="number" step="0.01" min="1" placeholder="3500.00" required oninput="preview()">
+              <input class="form-input" name="price" id="inp_fare" type="number" step="0.01" min="1" placeholder="3500.00" required oninput="preview()">
             </div>
           </div>
 
@@ -180,7 +180,7 @@
             <span class="material-symbols-outlined" style="font-size:1rem;color:var(--primary);margin-top:2px;">payments</span>
             <div>
               <div style="font-size:.8rem;font-weight:600;">Fare is Per Seat</div>
-              <div style="font-size:.75rem;color:var(--text-secondary);">The fare applies to every seat on this flight. Discounts and promos are managed outside the admin panel.</div>
+              <div style="font-size:.75rem;color:var(--text-secondary);">The price applies to every seat on this flight. Discounts and promos are managed outside the admin panel.</div>
             </div>
           </div>
           <div style="display:flex;gap:.75rem;align-items:flex-start;">

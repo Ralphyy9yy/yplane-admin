@@ -31,7 +31,7 @@ async def list_payments(request: Request, search: str = "", page: int = 1, db: S
         )
     query = query.order_by(Payment.id.desc())
     paginated = paginate_query(query, page=page, page_size=15)
-    return templates.TemplateResponse("payments/list.html", {
+    return templates.TemplateResponse(request=request, name="payments/list.html", context={
         "request": request,
         "admin": admin,
         "payments": paginated["items"],
